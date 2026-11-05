@@ -1,0 +1,7 @@
+build/
+sourcemap.json
+training/data/
+training/out/
+.venv/
+Packages/
+.DS_Store

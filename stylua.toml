@@ -1,0 +1,2 @@
+# StyLua defaults; only the parser is pinned so Luau-only syntax is never ambiguous.
+syntax = "Luau"

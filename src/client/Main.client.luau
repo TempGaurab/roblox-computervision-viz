@@ -1,0 +1,2 @@
+--!strict
+-- Client bootstrap: stations -> Glass; Pad -> inference -> Glass. Wired up from M3 onward.

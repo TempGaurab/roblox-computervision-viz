@@ -1,0 +1,2 @@
+--!strict
+-- Server bootstrap: World, Stations, Rounds, Submissions. Wired up in M5.

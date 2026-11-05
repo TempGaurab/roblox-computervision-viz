@@ -1,0 +1,52 @@
+{
+	"name": "NeuralGlass",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"Shared": {
+				"$path": "src/shared"
+			},
+			"Net": {
+				"$className": "Folder",
+				"Submit": {
+					"$className": "RemoteFunction"
+				},
+				"Round": {
+					"$className": "RemoteEvent"
+				},
+				"Station": {
+					"$className": "RemoteEvent"
+				}
+			}
+		},
+		"StarterPlayer": {
+			"StarterPlayerScripts": {
+				"Client": {
+					"$path": "src/client"
+				}
+			}
+		},
+		"ServerScriptService": {
+			"Server": {
+				"$path": "src/server"
+			}
+		},
+		"Lighting": {
+			"$properties": {
+				"Ambient": [0.04, 0.05, 0.08],
+				"OutdoorAmbient": [0.04, 0.05, 0.08],
+				"Brightness": 0.5,
+				"ClockTime": 0,
+				"GlobalShadows": false
+			},
+			"Bloom": {
+				"$className": "BloomEffect",
+				"$properties": {
+					"Intensity": 0.8,
+					"Size": 24,
+					"Threshold": 0.9
+				}
+			}
+		}
+	}
+}
