@@ -5,3 +5,4 @@ training/out/
 .venv/
 Packages/
 .DS_Store
+__pycache__/

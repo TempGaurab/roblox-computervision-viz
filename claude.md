@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M0 done; next up is M1. Update this line as milestones land.
+> **Status:** M1 done (model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet); next up is M2. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -81,7 +81,7 @@ assets/                    source PNGs and sounds; hand-made *.rbxm decor mapped
 - Remotes are declared in `default.project.json` under `ReplicatedStorage.Net` (`Submit`: RemoteFunction; `Round`, `Station`: RemoteEvent) so they exist before any script runs. Lighting and its BloomEffect are declared there too.
 - `server/World.luau` builds the lab and the station anchors from Config. Anything decorated by hand in Studio must be exported to `assets/*.rbxm` and mapped in the project file: `rojo build` alone must reproduce the whole place.
 - Requires: inside `NeuralCore`, relative string requires only (`require("./Model")`), which resolve the same in Roblox and Lune. Everywhere else, instance requires (`require(ReplicatedStorage.Shared.NeuralCore.Model)`). The client bootstrap waits for `game.Loaded` before requiring NeuralCore.
-- `.gitignore`: `build/ sourcemap.json training/data/ training/out/ .venv/ Packages/`. `ModelData.luau` **is** committed so the game builds without Python.
+- `.gitignore`: `build/ sourcemap.json training/data/ training/out/ .venv/ Packages/ __pycache__/`. `ModelData.luau` **is** committed so the game builds without Python.
 
 ## Commands
 
@@ -95,7 +95,8 @@ stylua src tests                       # CI: stylua --check src tests
 selene src
 lune run tests/run                     # unit + golden parity tests, no Studio needed
 
-python -m pip install -r training/requirements.txt   # inside a venv: torch, torchvision, numpy
+uv venv --seed --python 3.12 .venv      # torch has no wheels for very new Pythons; 3.11 to 3.13 are safe
+python -m pip install -r training/requirements.txt   # inside the venv: torch, torchvision, numpy
 python -m training.train               # -> training/out/model.pt; prints float test accuracy
 python -m training.export              # -> ModelData.luau, Dev/Fixtures.luau, tests/golden/*; prints accuracies
 python -m training.eval_strokes        # accuracy on recorded drawings in tests/fixtures/strokes
@@ -129,6 +130,7 @@ return {
 ```
 
 - Write floats with Python `repr()` so Luau parses exactly the same doubles.
+- `strokeFixtureAcc` is -1 until fixtures are recorded. Generated Luau is listed in `.styluaignore`.
 - The exporter fails if a generated module exceeds 190,000 characters (see Roblox facts). A bigger future model shards into `ModelData_2.luau`, and so on.
 - Luau reads every shape from this file. Nothing may hardcode 784, 64, 32 or 10.
 
