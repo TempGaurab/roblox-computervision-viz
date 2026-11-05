@@ -9,6 +9,7 @@ export type Failure = {
 export type TestKit = {
 	test: (name: string, body: () -> ()) -> (),
 	equal: (actual: unknown, expected: unknown, label: string?) -> (),
+	near: (actual: number, expected: number, tolerance: number, label: string?) -> (),
 	passed: number,
 	failures: { Failure },
 }
@@ -33,6 +34,11 @@ function TestKit.new(): TestKit
 		equal = function(actual: unknown, expected: unknown, label: string?)
 			if actual ~= expected then
 				error(`{label or "value"}: expected {tostring(expected)}, got {tostring(actual)}`, 2)
+			end
+		end,
+		near = function(actual: number, expected: number, tolerance: number, label: string?)
+			if math.abs(actual - expected) > tolerance then
+				error(`{label or "value"}: expected {expected} within {tolerance}, got {actual}`, 2)
 			end
 		end,
 	}

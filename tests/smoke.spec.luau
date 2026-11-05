@@ -27,4 +27,17 @@ return function(kit: TestKit.TestKit)
 	kit.test("project declares the bloom used for glow", function()
 		kit.equal(tree.Lighting.Bloom["$className"], "BloomEffect", "Bloom")
 	end)
+
+	kit.test("NeuralCore uses nothing from the Roblox environment", function()
+		local dir = "src/shared/NeuralCore"
+		for _, name in fs.readDir(dir) do
+			if name ~= "ModelData.luau" then
+				local source = fs.readFile(`{dir}/{name}`)
+				for _, banned in { "game", "workspace", "script", "Instance", "task", "Vector2", "Color3", "wait" } do
+					local found = string.find(source, `%f[%w_]{banned}%f[^%w_]`)
+					kit.equal(found, nil, `{name} mentions {banned}`)
+				end
+			end
+		end
+	end)
 end

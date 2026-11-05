@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M1 done (model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet); next up is M2. Update this line as milestones land.
+> **Status:** M2 done (model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet); next up is M3. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -159,9 +159,15 @@ Calibrate `brushInner`/`brushOuter` in `training/config.py` so recorded fixture 
 ```lua
 local model = Model.load(ModelData)                             -- decode + dequantize once
 local scratch = Model.newScratch(model)                         -- preallocated arrays, reused forever
-local top, pTop = Model.forward(model, input, scratch)          -- fills scratch.acts[layer], scratch.probs
-local count = Explain.selectEdges(model, input, scratch, edges) -- fills the preallocated `edges`
+local top, pTop = Model.forward(model, input, scratch)          -- fills scratch.acts[layer], scratch.probs, scratch.top
+local edges = Explain.newEdges(model)                           -- preallocated once
+local count = Explain.selectEdges(model, input, scratch, edges) -- fills `edges`; call after forward with the same scratch
+
+local ok = Preprocess.run(ModelData.preprocess, strokes, Preprocess.newScratch(), output) -- reuse both; false = unreadable
 ```
+
+- `top` is 0-based, so it is the digit. Every other index (`scratch.acts`, `edges.src`, `edges.dst`) is 1-based.
+- `edges` is a struct of arrays: `layer`, `src`, `dst`, `value`, `normalized`. Output links list the forced contributors first.
 
 - Layer 1 skips zero pixels (most of the input): for each non-zero pixel `i`, add `x_i · W[i, :]` to the accumulators. Later layers skip zero ReLU outputs.
 - Softmax subtracts the max logit. Argmax ties go to the lowest index.
