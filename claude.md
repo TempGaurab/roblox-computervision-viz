@@ -77,7 +77,8 @@ src/
   server/                  -> ServerScriptService.Server
     Main.server.luau  World.luau  Stations.luau  Submissions.luau
     Compete.luau                  runs the sprint: clock, joins, telling players
-    Rounds.luau  Sprint.luau  RateLimit.luau   pure logic with no requires, so Lune tests them
+    Scoreboard.luau               the best-streak board and its DataStore
+    Rounds.luau  Sprint.luau  Leaderboard.luau  RateLimit.luau   pure logic with no requires, so Lune tests them
 training/                  __init__.py config.py preprocess.py train.py export.py eval_strokes.py requirements.txt
 tests/                     run.luau  *.spec.luau  lib/  golden/ (GENERATED)  fixtures/strokes/
 assets/                    source PNGs and sounds; hand-made *.rbxm decor mapped by the project file
@@ -230,7 +231,8 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - **Rounds:** per-player `{mode, target, streak, score}` for Solo. Targets are random but never repeat the last two. A miss resets the streak and keeps the target. `leaderstats` shows Score, Streak and Wins (numbers only). The `Round` event tells the client its state.
 - **Compete:** one sprint on the server at a time. Joining starts a 10-second lobby, then a 60-second sprint, then 8 seconds of results, then the next lobby for everyone still there. Everyone gets the same digits in the same order, at their own pace. A miss keeps the digit and costs only time. The top score wins and equal scores share the win; a win needs at least two players and a score above zero. Leaving forfeits. Joining mid-sprint waits for the next one. Only display names and scores are shared, never anything about a drawing (Rule 4).
 - **Submit** (RemoteFunction, client → server): at most 2 per second per player; only at a station with a digit to draw (Solo, or a running sprint); payload ≤ 8 KB; `Classify.run` (`Strokes.decode` with limits → `Preprocess` → `Model`) → compare with the target → return `{correct, predicted, prob, target}`, plus `rejected` if it was refused without scoring. Then drop the strokes: never store, log, print or forward them.
-- DataStores, persistence and monetization are out of scope until the human asks.
+- **Scoreboard:** a panel on the lab wall shows the top 10 all-time best Solo streaks, with the developer's best pinned as "Beat the developer". Bests live in an OrderedDataStore keyed by user ID, holding one number each, and only ever go up (`UpdateAsync` keeps the higher). New bests save every 30 seconds, when a player leaves and at shutdown. Studio uses its own store, so test streaks never reach the live board. If DataStores fail, the board keeps working for that server and warns once.
+- That one store is the only persistence the human has asked for. Other DataStore use and monetization are out of scope until the human asks.
 
 ## Roblox facts this design relies on (checked Nov 2026)
 
@@ -244,6 +246,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - **Client-created instances don't replicate.** That's intended: each player's Glass is theirs alone.
 - **Buffers** can be sent through remotes; ours are capped at 8 KB.
 - **`RenderStepped`** is superseded by `PreRender` for new work.
+- **DataStores in Studio** fail with "Studio access to APIs is not allowed" until the human turns on _Enable Studio Access to API Services_ in Game Settings → Security. The game belongs to a group, so `game.CreatorId` isn't the developer; their user ID is in Config.
 - **Esc** belongs to the Roblox menu: scripts never see it, through `UserInputService` or `ContextActionService`. → X exits Draw Mode.
 - **`PlayerModule`** is injected at `StarterPlayer.PlayerModule` when the place uses the input action system, not under `PlayerScripts`, so waiting on `PlayerScripts` hangs forever. Its API is also different: `ControlModule.Enabled` replaces `GetControls()`. `Pad/DrawMode.luau` handles both.
 

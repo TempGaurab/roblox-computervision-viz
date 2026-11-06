@@ -8,6 +8,7 @@ local ModelData = require(ReplicatedStorage.Shared.NeuralCore.ModelData)
 local Protocol = require(ReplicatedStorage.Shared.Protocol)
 local Compete = require(script.Parent.Compete)
 local Rounds = require(script.Parent.Rounds)
+local Scoreboard = require(script.Parent.Scoreboard)
 local Stations = require(script.Parent.Stations)
 local Submissions = require(script.Parent.Submissions)
 local World = require(script.Parent.World)
@@ -77,6 +78,7 @@ local function publish(player: Player)
 end
 
 local anchors = World.build()
+Scoreboard.start()
 
 Compete.start({
 	nextDigit = function(recent: { number }): number
@@ -130,6 +132,7 @@ Submissions.start({
 		local target = round.target or -1
 		local isCorrect = Rounds.score(round, predicted, DIGIT_COUNT, randomInt)
 		publish(player)
+		Scoreboard.recordStreak(player, round.streak)
 		return isCorrect, target
 	end,
 })

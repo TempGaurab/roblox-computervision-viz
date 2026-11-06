@@ -252,6 +252,44 @@ local Config = {
 		CLEAR_DELAY = 1.5, -- seconds a correct drawing stays up before the pad clears for the next digit
 	},
 
+	Scoreboard = {
+		DEVELOPER_USER_ID = 1128590649, -- GauurabBeast. Set by hand: the game belongs to a group, so game.CreatorId isn't them
+		STORE_NAME = "BestStreaks",
+		STUDIO_STORE_NAME = "BestStreaks_Studio",
+		SIZE = 10,
+		SAVE_SECONDS = 30,
+		REFRESH_SECONDS = 60,
+		RENDER_SECONDS = 1,
+
+		-- On the back wall, to the right of the Glass.
+		POSITION = Vector3.new(36, 14, -65.75),
+		WIDTH = 20,
+		HEIGHT = 24,
+		DEPTH = 0.5,
+		TRIM_HEIGHT = 0.16,
+		PIXELS_PER_STUD = 25,
+		TITLE_SHARE = 0.13, -- of the panel's height
+		DEVELOPER_SHARE = 0.2,
+		RANK_WIDTH = 0.22, -- of the panel's width
+		BEST_WIDTH = 0.18,
+		TITLE_TEXT_SIZE = 50,
+		ROW_TEXT_SIZE = 36,
+		CAPTION_TEXT_SIZE = 32,
+
+		PANEL_COLOR = Color3.fromRGB(14, 17, 25),
+		TRIM_COLOR = Color3.fromRGB(70, 180, 255),
+		TEXT_COLOR = Color3.fromRGB(235, 245, 255),
+		MUTED_COLOR = Color3.fromRGB(130, 145, 170),
+		DEVELOPER_COLOR = Color3.fromRGB(255, 200, 110),
+		DEVELOPER_BACKGROUND_COLOR = Color3.fromRGB(44, 34, 20),
+
+		TITLE = "HIGHEST STREAKS",
+		DEVELOPER_CAPTION = "BEAT THE DEVELOPER",
+		DEVELOPER_TAG = "DEV",
+		NO_BEST = "-",
+		UNKNOWN_NAME = "Player",
+	},
+
 	Sprint = {
 		LOBBY_SECONDS = 10,
 		DURATION_SECONDS = 60,
