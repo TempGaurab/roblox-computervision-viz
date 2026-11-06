@@ -1,9 +1,9 @@
 --!strict
--- One player's round: mode, target, streak, and score. Pure logic with no requires or Roblox APIs, so
+-- One player's Solo round: mode, target, streak, and score. Pure logic with no requires or Roblox APIs, so
 -- Lune can test it. Targets are random but never repeat the last two. A miss keeps the target, so the
 -- player can try that digit again; only a correct answer moves on.
 
-export type Mode = "free" | "challenge"
+export type Mode = "free" | "solo" | "compete"
 
 export type Round = {
 	mode: Mode,
@@ -24,8 +24,8 @@ function Rounds.new(): Round
 	return { mode = "free", target = nil, recent = {}, streak = 0, score = 0 }
 end
 
-local function pickTarget(round: Round, digitCount: number, randomInt: RandomInt)
-	local recent = round.recent
+-- Picks a digit that isn't in `recent`, and remembers it there.
+function Rounds.pickDigit(recent: { number }, digitCount: number, randomInt: RandomInt): number
 	local index = randomInt(0, digitCount - 1 - #recent)
 	-- Walk the digits in order, skipping the excluded ones, so every allowed digit is equally likely.
 	local digit = -1
@@ -38,17 +38,17 @@ local function pickTarget(round: Round, digitCount: number, randomInt: RandomInt
 			index -= 1
 		end
 	end
-	round.target = digit
 	table.insert(recent, 1, digit)
 	if #recent > REMEMBERED_TARGETS then
 		table.remove(recent)
 	end
+	return digit
 end
 
 function Rounds.start(round: Round, mode: Mode, digitCount: number, randomInt: RandomInt)
 	round.mode = mode
-	if mode == "challenge" and round.target == nil then
-		pickTarget(round, digitCount, randomInt)
+	if mode == "solo" and round.target == nil then
+		round.target = Rounds.pickDigit(round.recent, digitCount, randomInt)
 	end
 end
 
@@ -58,7 +58,7 @@ function Rounds.score(round: Round, predicted: number, digitCount: number, rando
 	if isCorrect then
 		round.score += 1
 		round.streak += 1
-		pickTarget(round, digitCount, randomInt)
+		round.target = Rounds.pickDigit(round.recent, digitCount, randomInt)
 	else
 		round.streak = 0
 	end

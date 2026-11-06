@@ -14,6 +14,8 @@ local StationEvent = ReplicatedStorage.Net.Station
 export type Context = {
 	-- Puts the player in a mode, then tells them about their round.
 	startRound: (player: Player, mode: Protocol.Mode) -> (),
+	-- The player has left their station, for any reason.
+	onReleased: (player: Player) -> (),
 }
 
 type Station = {
@@ -34,7 +36,7 @@ local function setPromptsEnabled(station: Station, isEnabled: boolean)
 	end
 end
 
-local function release(player: Player, tellClient: boolean)
+local function release(context: Context, player: Player, tellClient: boolean)
 	local station = held[player]
 	if station == nil then
 		return
@@ -42,6 +44,7 @@ local function release(player: Player, tellClient: boolean)
 	held[player] = nil
 	station.occupant = nil
 	setPromptsEnabled(station, true)
+	context.onReleased(player)
 	if tellClient then
 		StationEvent:FireClient(player, "exit")
 	end
@@ -77,12 +80,15 @@ local function newPrompt(
 	station: Station,
 	mode: Protocol.Mode,
 	objectText: string,
-	key: Enum.KeyCode
+	key: Enum.KeyCode,
+	slot: number
 ): ProximityPrompt
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = WorldConfig.PROMPT_ACTION
 	prompt.ObjectText = objectText
 	prompt.KeyboardKeyCode = key
+	-- Prompts on one part share a screen position, so space them out in a column.
+	prompt.UIOffset = Vector2.new(0, slot * WorldConfig.PROMPT_SPACING)
 	prompt.MaxActivationDistance = WorldConfig.PROMPT_DISTANCE
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = station.anchor
@@ -92,16 +98,16 @@ local function newPrompt(
 	return prompt
 end
 
-local function watchCharacter(player: Player)
+local function watchCharacter(context: Context, player: Player)
 	local function onCharacter(character: Model)
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		humanoid.Died:Connect(function()
-			release(player, true)
+			release(context, player, true)
 		end)
 	end
 	player.CharacterAdded:Connect(onCharacter)
 	player.CharacterRemoving:Connect(function()
-		release(player, true)
+		release(context, player, true)
 	end)
 	if player.Character ~= nil then
 		task.spawn(onCharacter, player.Character)
@@ -115,25 +121,29 @@ end
 function Stations.start(context: Context, anchors: { Part })
 	for index, anchor in anchors do
 		local station: Station = { anchor = anchor, prompts = {}, occupant = nil }
-		station.prompts[1] =
-			newPrompt(context, station, "challenge", WorldConfig.PROMPT_CHALLENGE, WorldConfig.PROMPT_CHALLENGE_KEY)
-		station.prompts[2] = newPrompt(context, station, "free", WorldConfig.PROMPT_FREE, WorldConfig.PROMPT_FREE_KEY)
+		station.prompts = {
+			newPrompt(context, station, "solo", WorldConfig.PROMPT_SOLO, WorldConfig.PROMPT_SOLO_KEY, -1),
+			newPrompt(context, station, "compete", WorldConfig.PROMPT_COMPETE, WorldConfig.PROMPT_COMPETE_KEY, 0),
+			newPrompt(context, station, "free", WorldConfig.PROMPT_FREE, WorldConfig.PROMPT_FREE_KEY, 1),
+		}
 		stations[index] = station
 	end
 
 	StationEvent.OnServerEvent:Connect(function(player: Player, action: unknown)
 		if action == "exit" and RateLimit.allow(exitLimit, player, os.clock()) then
-			release(player, false)
+			release(context, player, false)
 		end
 	end)
 
-	Players.PlayerAdded:Connect(watchCharacter)
+	Players.PlayerAdded:Connect(function(player: Player)
+		watchCharacter(context, player)
+	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
-		release(player, false)
+		release(context, player, false)
 		RateLimit.forget(exitLimit, player)
 	end)
 	for _, player in Players:GetPlayers() do
-		watchCharacter(player)
+		watchCharacter(context, player)
 	end
 end
 

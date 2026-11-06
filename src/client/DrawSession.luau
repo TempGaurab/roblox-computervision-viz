@@ -32,6 +32,7 @@ export type DrawSession = {
 	limitReached: boolean,
 	isSubmitting: boolean,
 	round: Protocol.RoundState?,
+	shownSeconds: number, -- the countdown on screen, so it only redraws when the number changes
 	activeCleanup: Cleanup.Cleanup,
 }
 
@@ -60,17 +61,91 @@ local function withArticle(digit: number): string
 	return `{if digit == 8 then "an" else "a"} {digit}`
 end
 
+local function secondsLeft(sprint: Protocol.SprintView): number
+	return math.max(math.ceil(sprint.endsAt - workspace:GetServerTimeNow()), 0)
+end
+
+local function standingsText(sprint: Protocol.SprintView): string
+	local lines: { string } = {}
+	local userId = Players.LocalPlayer.UserId
+	for rank, standing in sprint.standings do
+		local name = if standing.userId == userId then Config.Hud.STANDINGS_YOU else standing.name
+		table.insert(lines, string.format(Config.Hud.STANDINGS_LINE, rank, name, standing.score))
+	end
+	return table.concat(lines, "\n")
+end
+
+local function resultsHeadline(sprint: Protocol.SprintView): string
+	local standings = sprint.standings
+	local first = standings[1]
+	if first == nil or #standings < 2 or first.score == 0 then
+		return Config.Hud.PROMPT_TIME_UP
+	end
+	local userId = Players.LocalPlayer.UserId
+	local topCount = 0
+	local isOnTop = false
+	for _, standing in standings do
+		if standing.score == first.score then
+			topCount += 1
+			isOnTop = isOnTop or standing.userId == userId
+		end
+	end
+	if not isOnTop then
+		return string.format(Config.Hud.PROMPT_THEY_WON, first.name)
+	end
+	return if topCount > 1 then Config.Hud.PROMPT_YOU_TIED else Config.Hud.PROMPT_YOU_WON
+end
+
+local function showSprint(session: DrawSession, round: Protocol.RoundState, sprint: Protocol.SprintView)
+	local hud = session.hud
+	local seconds = secondsLeft(sprint)
+	session.shownSeconds = seconds
+	local hudConfig = Config.Hud
+	local prompt: string
+	local line: string
+	if sprint.isWaiting then
+		prompt = hudConfig.PROMPT_WAITING
+		line = ""
+	elseif sprint.phase == "running" and round.target ~= nil then
+		prompt = string.format(hudConfig.PROMPT_DRAW, withArticle(round.target))
+		line = string.format(hudConfig.SPRINT_RUNNING_LINE, round.score, seconds // 60, seconds % 60)
+	elseif sprint.phase == "results" then
+		prompt = resultsHeadline(sprint)
+		line = string.format(hudConfig.SPRINT_SCORE_LINE, round.score)
+			.. "  ·  "
+			.. string.format(hudConfig.SPRINT_NEXT_LINE, seconds)
+	else
+		prompt = hudConfig.PROMPT_GET_READY
+		line = string.format(hudConfig.SPRINT_STARTS_LINE, seconds)
+	end
+	Hud.setRound(hud, prompt, line)
+	Hud.setStandings(hud, standingsText(sprint))
+end
+
 local function showRound(session: DrawSession)
 	local round = session.round
 	local hud = session.hud
+	if round ~= nil and round.sprint ~= nil then
+		showSprint(session, round, round.sprint)
+		return
+	end
+	Hud.setStandings(hud, "")
 	if round == nil or round.mode == "free" or round.target == nil then
 		Hud.setRound(hud, Config.Hud.PROMPT_FREE, "")
 	else
 		Hud.setRound(
 			hud,
-			string.format(Config.Hud.PROMPT_CHALLENGE, withArticle(round.target)),
+			string.format(Config.Hud.PROMPT_DRAW, withArticle(round.target)),
 			string.format(Config.Hud.SCORE_LINE, round.score, round.streak)
 		)
+	end
+end
+
+-- Redraws the countdown when the number on it changes.
+local function stepCountdown(session: DrawSession)
+	local round = session.round
+	if round ~= nil and round.sprint ~= nil and secondsLeft(round.sprint) ~= session.shownSeconds then
+		showRound(session)
 	end
 end
 
@@ -116,6 +191,7 @@ function DrawSession.new(): DrawSession
 		limitReached = false,
 		isSubmitting = false,
 		round = nil,
+		shownSeconds = -1,
 		activeCleanup = Cleanup.new(),
 	}
 	return session
@@ -131,7 +207,7 @@ local function handleKey(session: DrawSession, inputState: Enum.UserInputState, 
 	elseif keyCode == Enum.KeyCode.Z then
 		Pad.undo(session.pad)
 	elseif keyCode == Enum.KeyCode.Return then
-		if session.mode == "challenge" then
+		if session.mode ~= "free" then
 			session.pad.callbacks.onSubmit()
 		end
 	elseif keyCode == Enum.KeyCode.X or keyCode == Enum.KeyCode.ButtonB then
@@ -149,7 +225,7 @@ function DrawSession.enter(session: DrawSession, mode: Mode)
 	DrawMode.enter()
 	ProximityPromptService.Enabled = false
 	frameCamera(session)
-	Pad.open(session.pad, mode == "challenge")
+	Pad.open(session.pad, mode ~= "free")
 	Hud.setVisible(session.hud, true)
 	Hud.setResult(session.hud, "", false)
 	showRound(session)
@@ -168,6 +244,7 @@ function DrawSession.enter(session: DrawSession, mode: Mode)
 			if Inference.step(session.inference, session.pad.strokes) then
 				refresh(session)
 			end
+			stepCountdown(session)
 		end)
 	)
 	ContextActionService:BindAction(
@@ -207,6 +284,9 @@ local function showSubmitResult(session: DrawSession, result: Protocol.SubmitRes
 	if result.rejected == "unreadable" then
 		Hud.setMessage(hud, Config.Hud.MESSAGE_TOO_SMALL)
 		return
+	elseif result.rejected == "notInRound" then
+		Hud.setMessage(hud, Config.Hud.MESSAGE_WAIT)
+		return
 	elseif result.rejected ~= nil then
 		Hud.setMessage(hud, Config.Hud.MESSAGE_RETRY)
 		return
@@ -216,8 +296,13 @@ local function showSubmitResult(session: DrawSession, result: Protocol.SubmitRes
 	local inference = session.inference
 	local isCurrent = inference.runCount == runCount and not inference.isDirty
 	if result.correct then
+		-- In a sprint the next digit is already up, so the pad clears at once. A delay could mix the next
+		-- stroke in with this drawing.
+		if session.mode == "compete" and isCurrent then
+			Pad.clear(session.pad)
+		end
 		Hud.setResult(hud, string.format(Config.Hud.RESULT_CORRECT, withArticle(result.predicted)), true)
-		if isCurrent then
+		if isCurrent and session.mode ~= "compete" then
 			GlassView.celebrate(session.glass)
 			task.delay(Config.Round.CLEAR_DELAY, function()
 				local isUnchanged = inference.runCount == runCount and not inference.isDirty
@@ -238,7 +323,12 @@ end
 -- Sends the drawing to the server once and shows what comes back. The server is the only judge: the
 -- client's own prediction is never sent.
 function DrawSession.submit(session: DrawSession)
-	if not session.isActive or session.mode ~= "challenge" or session.isSubmitting or session.pad.isDrawing then
+	if not session.isActive or session.mode == "free" or session.isSubmitting or session.pad.isDrawing then
+		return
+	end
+	local round = session.round
+	if round ~= nil and round.sprint ~= nil and round.target == nil then
+		Hud.setMessage(session.hud, Config.Hud.MESSAGE_WAIT)
 		return
 	end
 	DrawSession.inferNow(session)
@@ -277,8 +367,15 @@ function DrawSession.connectServer(session: DrawSession)
 		end
 	end)
 	Net.Round.OnClientEvent:Connect(function(round: Protocol.RoundState)
+		local previous = session.round
+		local wasRunning = previous ~= nil and previous.sprint ~= nil and previous.sprint.phase == "running"
+		local isRunning = round.sprint ~= nil and round.sprint.phase == "running"
 		session.round = round
 		showRound(session)
+		-- Everyone starts a sprint on an empty pad.
+		if isRunning and not wasRunning and session.isActive then
+			Pad.clear(session.pad)
+		end
 	end)
 end
 

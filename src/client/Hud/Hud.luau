@@ -26,6 +26,7 @@ export type Hud = {
 	prompt: TextLabel,
 	result: TextLabel,
 	score: TextLabel,
+	standings: TextLabel,
 }
 
 local Hud = {}
@@ -100,6 +101,23 @@ local function newScaledLabel(parent: Instance, name: string, top: number, heigh
 	return label
 end
 
+-- Under the Glass in landscape, where the screen is free. In portrait the pad docks along the bottom, so
+-- it goes in the top-left corner instead.
+local function placeStandings(gui: ScreenGui, standings: TextLabel)
+	local screen = gui.AbsoluteSize
+	if screen.Y > screen.X then
+		standings.AnchorPoint = Vector2.new(0, 0)
+		standings.Position = UDim2.fromOffset(HudConfig.MARGIN, HudConfig.MARGIN)
+		standings.TextXAlignment = Enum.TextXAlignment.Left
+		standings.TextYAlignment = Enum.TextYAlignment.Top
+	else
+		standings.AnchorPoint = Vector2.new(1, 1)
+		standings.Position = UDim2.new(1, -HudConfig.MARGIN, 1, -HudConfig.MARGIN)
+		standings.TextXAlignment = Enum.TextXAlignment.Right
+		standings.TextYAlignment = Enum.TextYAlignment.Bottom
+	end
+end
+
 function Hud.new(modelVersion: string): Hud
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "NeuralGlassHud"
@@ -150,7 +168,15 @@ function Hud.new(modelVersion: string): Hud
 	local result =
 		newScaledLabel(roundRoot, "Result", promptHeight + scoreHeight, resultHeight, HudConfig.RESULT_MAX_TEXT_SIZE)
 
+	local standings = newLabel(gui, "Standings", HudConfig.STANDINGS_TEXT_SIZE, HudConfig.TEXT_COLOR)
+	standings.Size = UDim2.fromOffset(HudConfig.WIDTH, HudConfig.STANDINGS_HEIGHT)
+	standings.Visible = false
+
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		placeStandings(gui, standings)
+	end)
+	placeStandings(gui, standings)
 	return {
 		gui = gui,
 		root = root,
@@ -160,12 +186,19 @@ function Hud.new(modelVersion: string): Hud
 		prompt = prompt,
 		result = result,
 		score = score,
+		standings = standings,
 	}
 end
 
 function Hud.setVisible(hud: Hud, visible: boolean)
 	hud.root.Visible = visible
 	hud.roundRoot.Visible = visible
+	hud.standings.Visible = visible
+end
+
+-- One line per player, best first. Empty hides it.
+function Hud.setStandings(hud: Hud, text: string)
+	hud.standings.Text = text
 end
 
 -- `promptText` says what to do; `scoreText` is empty in Free Draw.

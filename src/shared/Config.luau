@@ -141,11 +141,14 @@ local Config = {
 		CONSOLE_TEXT_COLOR = Color3.fromRGB(150, 225, 255),
 
 		PROMPT_ACTION = "Draw",
-		PROMPT_CHALLENGE = "Challenge",
+		PROMPT_SOLO = "Solo",
+		PROMPT_COMPETE = "Compete",
 		PROMPT_FREE = "Free Draw",
-		PROMPT_CHALLENGE_KEY = Enum.KeyCode.E,
+		PROMPT_SOLO_KEY = Enum.KeyCode.E,
+		PROMPT_COMPETE_KEY = Enum.KeyCode.R,
 		PROMPT_FREE_KEY = Enum.KeyCode.F,
 		PROMPT_DISTANCE = 12,
+		PROMPT_SPACING = 80, -- pixels between a console's prompts
 		REACH_SLACK = 6, -- studs of lag allowed when the server checks a prompt's range
 	},
 
@@ -221,15 +224,39 @@ local Config = {
 		SCORE_MAX_TEXT_SIZE = 18,
 		GOOD_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
 
-		PROMPT_CHALLENGE = "Draw %s",
+		PROMPT_DRAW = "Draw %s",
 		PROMPT_FREE = "Free Draw",
 		RESULT_CORRECT = "Correct! That's %s",
 		RESULT_WRONG = "The network saw %s (%d%%)",
 		SCORE_LINE = "Score %d  ·  Streak %d",
+
+		-- Compete.
+		STANDINGS_HEIGHT = 110,
+		STANDINGS_TEXT_SIZE = 18,
+		STANDINGS_YOU = "You",
+		STANDINGS_LINE = "%d. %s  %d",
+		MESSAGE_WAIT = "Wait for the next sprint",
+		PROMPT_GET_READY = "Get ready",
+		PROMPT_WAITING = "Next sprint soon",
+		PROMPT_YOU_WON = "You won!",
+		PROMPT_YOU_TIED = "You tied for first!",
+		PROMPT_THEY_WON = "%s won",
+		PROMPT_TIME_UP = "Time's up",
+		SPRINT_STARTS_LINE = "Starts in %d",
+		SPRINT_RUNNING_LINE = "Score %d  ·  %d:%02d",
+		SPRINT_SCORE_LINE = "You scored %d",
+		SPRINT_NEXT_LINE = "Next sprint in %d",
 	},
 
 	Round = {
 		CLEAR_DELAY = 1.5, -- seconds a correct drawing stays up before the pad clears for the next digit
+	},
+
+	Sprint = {
+		LOBBY_SECONDS = 10,
+		DURATION_SECONDS = 60,
+		RESULTS_SECONDS = 8,
+		TICK_SECONDS = 0.25,
 	},
 
 	Dev = {

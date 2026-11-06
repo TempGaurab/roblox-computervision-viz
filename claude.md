@@ -22,10 +22,10 @@ This file is the spec and the working agreement for Claude Code. When a decision
 
 ## The experience
 
-1. The player walks up to a **station** and triggers one of its two "Draw" ProximityPrompts: Challenge (E) or Free Draw (F). In Draw Mode the camera locks onto the Glass, movement is disabled and the Pad slides in.
-2. **Challenge:** the server asks for a digit ("Draw a 7"). **Free Draw:** no prompt, just explore.
+1. The player walks up to a **station** and triggers one of its three "Draw" ProximityPrompts: Solo (E), Compete (R) or Free Draw (F). In Draw Mode the camera locks onto the Glass, movement is disabled and the Pad slides in.
+2. **Solo:** the server asks for a digit ("Draw a 7"), at the player's own pace. **Compete:** a timed sprint against whoever else joined (below). **Free Draw:** no prompt, just explore.
 3. While they draw, inference runs live and the Glass animates: the network-view panel shows what the model actually sees (scaled and centered), signals pulse left → right, neurons glow, output bars rise and fall. A live top-3 also appears in the HUD.
-4. **Submit** (Challenge): the server scores it (top-1 == target) and updates score and streak; the client celebrates and moves on to a new digit, or shows "The network saw a 9 (61%)" with the strongest path highlighted and keeps the same digit to retry.
+4. **Submit** (Solo and Compete): the server scores it (top-1 == target) and updates score and streak; the client celebrates and moves on to a new digit, or shows "The network saw a 9 (61%)" with the strongest path highlighted and keeps the same digit to retry.
 5. Clear or Undo and go again; Exit restores the camera and controls.
 
 Stretch goals (after M6): neuron inspector (click an H1 neuron to see its 28×28 weight map on the network-view panel), slow-motion "explain" replay, "fool the network" challenge.
@@ -76,7 +76,8 @@ src/
     Dev/Harness.luau       Studio-only test hooks; Dev/Fixtures.luau is GENERATED
   server/                  -> ServerScriptService.Server
     Main.server.luau  World.luau  Stations.luau  Submissions.luau
-    Rounds.luau  RateLimit.luau   pure logic with no requires, so Lune tests them
+    Compete.luau                  runs the sprint: clock, joins, telling players
+    Rounds.luau  Sprint.luau  RateLimit.luau   pure logic with no requires, so Lune tests them
 training/                  __init__.py config.py preprocess.py train.py export.py eval_strokes.py requirements.txt
 tests/                     run.luau  *.spec.luau  lib/  golden/ (GENERATED)  fixtures/strokes/
 assets/                    source PNGs and sounds; hand-made *.rbxm decor mapped by the project file
@@ -220,14 +221,15 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - Input: start on the pad's `InputBegan` (MouseButton1 or Touch). Mouse: track `MouseMovement` while the button is held. Touch: track only the InputObject that started the stroke and ignore other fingers. Finish on `InputEnded`. Convert positions with the pad's AbsolutePosition/AbsoluteSize, and check the GUI inset once with a mouse and once in the Device Emulator.
 - Add a point only after the pointer moves ≥ 1% of the pad size; quantize to u16 immediately; enforce the Strokes limits (HUD: "Clear to keep drawing").
 - Ink: pooled Frames (rotated segments plus round joints with UICorner), at most 2,048.
-- Controls: Clear, Undo stroke, Submit (Challenge), Exit; keys C, Z, Enter, X. On gamepad, B exits; drawing with a gamepad is out of scope for v1.
+- Controls: Clear, Undo stroke, Submit (Solo and Compete), Exit; keys C, Z, Enter, X. On gamepad, B exits; drawing with a gamepad is out of scope for v1.
 - Draw Mode sets the camera to `Scriptable` and disables character controls (see `PlayerModule` under Roblox facts); restore both on exit and on respawn.
 
 ## Server & networking (`src/server/`)
 
 - **Stations:** the ProximityPrompt's `Triggered` → the server checks range and grants the station (one player each) → the `Station` event puts that client in Draw Mode. Released on exit, death or leaving. The client fires `Station` with `"exit"` when it leaves Draw Mode. The server builds the Stations model with `ModelStreamingMode = Persistent`.
-- **Rounds:** per-player `{mode, target, streak, score}`. Targets are random but never repeat the last two. A miss resets the streak and keeps the target. `leaderstats` shows Score and Streak (numbers only). The `Round` event tells the client its state.
-- **Submit** (RemoteFunction, client → server): at most 2 per second per player; only at a station in Challenge; payload ≤ 8 KB; `Classify.run` (`Strokes.decode` with limits → `Preprocess` → `Model`) → compare with the target → return `{correct, predicted, prob, target}`, plus `rejected` if it was refused without scoring. Then drop the strokes: never store, log, print or forward them.
+- **Rounds:** per-player `{mode, target, streak, score}` for Solo. Targets are random but never repeat the last two. A miss resets the streak and keeps the target. `leaderstats` shows Score, Streak and Wins (numbers only). The `Round` event tells the client its state.
+- **Compete:** one sprint on the server at a time. Joining starts a 10-second lobby, then a 60-second sprint, then 8 seconds of results, then the next lobby for everyone still there. Everyone gets the same digits in the same order, at their own pace. A miss keeps the digit and costs only time. The top score wins and equal scores share the win; a win needs at least two players and a score above zero. Leaving forfeits. Joining mid-sprint waits for the next one. Only display names and scores are shared, never anything about a drawing (Rule 4).
+- **Submit** (RemoteFunction, client → server): at most 2 per second per player; only at a station with a digit to draw (Solo, or a running sprint); payload ≤ 8 KB; `Classify.run` (`Strokes.decode` with limits → `Preprocess` → `Model`) → compare with the target → return `{correct, predicted, prob, target}`, plus `rejected` if it was refused without scoring. Then drop the strokes: never store, log, print or forward them.
 - DataStores, persistence and monetization are out of scope until the human asks.
 
 ## Roblox facts this design relies on (checked Nov 2026)
