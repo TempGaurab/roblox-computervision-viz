@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M3 and M4 code committed. M3's mouse input, controls and respawn pass in a Studio playtest; touch is unchecked. M4's budgets are unmeasured on a phone. M5 waits on those. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
+> **Status:** M5 code committed. M3's touch input is unchecked and M4's budgets are unmeasured on a phone; the human chose to go ahead without them. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -22,10 +22,10 @@ This file is the spec and the working agreement for Claude Code. When a decision
 
 ## The experience
 
-1. The player walks up to a **station** and triggers its "Draw" ProximityPrompt. In Draw Mode the camera locks onto the Glass, movement is disabled and the Pad slides in.
+1. The player walks up to a **station** and triggers one of its two "Draw" ProximityPrompts: Challenge (E) or Free Draw (F). In Draw Mode the camera locks onto the Glass, movement is disabled and the Pad slides in.
 2. **Challenge:** the server asks for a digit ("Draw a 7"). **Free Draw:** no prompt, just explore.
 3. While they draw, inference runs live and the Glass animates: the network-view panel shows what the model actually sees (scaled and centered), signals pulse left → right, neurons glow, output bars rise and fall. A live top-3 also appears in the HUD.
-4. **Submit** (Challenge): the server scores it (top-1 == target) and updates score and streak; the client celebrates, or shows "The network saw a 9 (61%)" with the strongest path highlighted.
+4. **Submit** (Challenge): the server scores it (top-1 == target) and updates score and streak; the client celebrates and moves on to a new digit, or shows "The network saw a 9 (61%)" with the strongest path highlighted and keeps the same digit to retry.
 5. Clear or Undo and go again; Exit restores the camera and controls.
 
 Stretch goals (after M6): neuron inspector (click an H1 neuron to see its 28×28 weight map on the network-view panel), slow-motion "explain" replay, "fool the network" challenge.
@@ -51,6 +51,7 @@ Decisions (don't relitigate without the human):
 | Pad ink and network view built from Frames, not EditableImage         | EditableImage needs a 13+ ID-verified owner plus a Security toggle, and only one displayed image updates per frame |
 | Strokes are vectors, quantized to u16 when captured                   | Resolution-independent preprocessing, tiny payload, bit-identical input on client and server                       |
 | The Glass is built procedurally on the client from the model's shapes | Changing layer sizes never needs Studio work                                                                       |
+| One chamber in the lab, several stations in front of it               | Each client fills it with its own network, so there is nothing to move or share (Rule 4)                           |
 
 ## Repo layout
 
@@ -64,15 +65,18 @@ src/
       Preprocess.luau      strokes -> 28x28 (spec below)
       Strokes.luau         stroke storage, limits, buffer encode/decode
       Explain.luau         picks which links the Glass shows
+      Classify.luau        the server's pipeline: payload -> digit, strokes dropped
       Base64.luau
     Config.luau            every tunable: rates, budgets, colors, layout
     Assets.luau            uploaded asset IDs (textures, sounds)
+    Protocol.luau          the shapes that cross the network
   client/                  -> StarterPlayer.StarterPlayerScripts.Client
     Main.client.luau       bootstrap: stations -> Glass; Pad -> inference -> Glass
     Pad/  Glass/  Hud/
     Dev/Harness.luau       Studio-only test hooks; Dev/Fixtures.luau is GENERATED
   server/                  -> ServerScriptService.Server
-    Main.server.luau  World.luau  Stations.luau  Rounds.luau  Submissions.luau
+    Main.server.luau  World.luau  Stations.luau  Submissions.luau
+    Rounds.luau  RateLimit.luau   pure logic with no requires, so Lune tests them
 training/                  __init__.py config.py preprocess.py train.py export.py eval_strokes.py requirements.txt
 tests/                     run.luau  *.spec.luau  lib/  golden/ (GENERATED)  fixtures/strokes/
 assets/                    source PNGs and sounds; hand-made *.rbxm decor mapped by the project file
@@ -221,9 +225,9 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 
 ## Server & networking (`src/server/`)
 
-- **Stations:** the ProximityPrompt's `Triggered` → the server grants the station (one player each) → the `Station` event puts that client in Draw Mode. Released on exit, death or leaving. The server builds the Stations model with `ModelStreamingMode = Persistent`.
-- **Rounds:** per-player `{mode, target, streak, score}`. Targets are random but never repeat the last two. `leaderstats` shows Score and Streak (numbers only).
-- **Submit** (RemoteFunction, client → server): at most 2 per second per player; payload ≤ 8 KB; `Strokes.decode` with limits → `Preprocess` → `Model` → compare with the target → return `{correct, predicted, prob, target}`. Then drop the strokes: never store, log, print or forward them.
+- **Stations:** the ProximityPrompt's `Triggered` → the server checks range and grants the station (one player each) → the `Station` event puts that client in Draw Mode. Released on exit, death or leaving. The client fires `Station` with `"exit"` when it leaves Draw Mode. The server builds the Stations model with `ModelStreamingMode = Persistent`.
+- **Rounds:** per-player `{mode, target, streak, score}`. Targets are random but never repeat the last two. A miss resets the streak and keeps the target. `leaderstats` shows Score and Streak (numbers only). The `Round` event tells the client its state.
+- **Submit** (RemoteFunction, client → server): at most 2 per second per player; only at a station in Challenge; payload ≤ 8 KB; `Classify.run` (`Strokes.decode` with limits → `Preprocess` → `Model`) → compare with the target → return `{correct, predicted, prob, target}`, plus `rejected` if it was refused without scoring. Then drop the strokes: never store, log, print or forward them.
 - DataStores, persistence and monetization are out of scope until the human asks.
 
 ## Roblox facts this design relies on (checked Nov 2026)
@@ -275,7 +279,7 @@ Definition of done for every change:
 
 `execute_luau` restores the camera type if it changed while the script ran, so don't yield across a Draw Mode change or a death and then trust `CameraType`. When Pad input code changes, also drag across the pad with `user_mouse_input`. Never use the MCP script-writing tools (Rule 1).
 
-In Studio playtests, **G** or the green on-screen button toggles Draw Mode (until stations exist in M5) and **H** prints the current drawing. Avoid function keys: on a Mac they need fn held. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
+In Studio playtests, **H** prints the current drawing. Avoid function keys: on a Mac they need fn held. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
 
 `Dev/Harness.luau` does nothing unless `RunService:IsStudio()`. It exposes `selfTest()`, `replay(strokesBase64)`, `state()` (prediction, probabilities, model version, timings, instance counts) and `dumpStrokes()`, which prints the current drawing as base64 so the human can save it as a fixture.
 

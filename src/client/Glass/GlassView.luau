@@ -13,6 +13,7 @@ local GlassBuilder = require(script.Parent.GlassBuilder)
 
 local GlassConfig = Config.Glass
 
+local abs = math.abs
 local clock = os.clock
 local exp = math.exp
 local floor = math.floor
@@ -47,6 +48,9 @@ export type GlassView = {
 	negativeLinkColor: ColorSequence,
 	linkTransparency: { NumberSequence },
 	linkWidths: { number },
+	pathColor: ColorSequence,
+	pathTransparency: NumberSequence,
+	pathDimTransparency: NumberSequence,
 
 	-- Links.
 	shownPixelLevel: { number },
@@ -73,6 +77,7 @@ export type GlassView = {
 	idlePacketCredit: number,
 
 	winner: number,
+	celebrateLeft: number,
 	lastStepSeconds: number,
 	elapsed: number,
 }
@@ -236,6 +241,19 @@ local function stepOutputBars(view: GlassView)
 	end
 end
 
+local function stepCelebration(view: GlassView, dt: number)
+	local left = view.celebrateLeft - dt
+	view.celebrateLeft = left
+	local parts = view.parts
+	local size = GlassConfig.HALO_SIZE
+	if left > 0 then
+		size *= 1 + GlassConfig.CELEBRATE_AMPLITUDE * abs(sin(left * GlassConfig.CELEBRATE_SPEED))
+	else
+		parts.winnerLabel.TextColor3 = GlassConfig.TEXT_COLOR
+	end
+	parts.halo.Size = Vector3.new(size, size, size)
+end
+
 local function step(view: GlassView, dt: number)
 	local started = clock()
 	view.elapsed += dt
@@ -251,6 +269,9 @@ local function step(view: GlassView, dt: number)
 		end
 	end
 	stepPackets(view, dt)
+	if view.celebrateLeft > 0 then
+		stepCelebration(view, dt)
+	end
 	view.lastStepSeconds = clock() - started
 end
 
@@ -340,6 +361,9 @@ function GlassView.new(model: Model.Model): GlassView
 		pixelColors = pixelColors,
 		positiveLinkColor = ColorSequence.new(GlassConfig.POSITIVE_COLOR),
 		negativeLinkColor = ColorSequence.new(GlassConfig.NEGATIVE_COLOR),
+		pathColor = ColorSequence.new(GlassConfig.PATH_COLOR),
+		pathTransparency = NumberSequence.new(0),
+		pathDimTransparency = NumberSequence.new(1 - GlassConfig.PATH_DIM_OPACITY),
 		linkTransparency = linkTransparency,
 		linkWidths = linkWidths,
 
@@ -366,6 +390,7 @@ function GlassView.new(model: Model.Model): GlassView
 		idlePacketCredit = 0,
 
 		winner = -1,
+		celebrateLeft = 0,
 		lastStepSeconds = 0,
 		elapsed = 0,
 	}
@@ -511,6 +536,50 @@ function GlassView.setResult(view: GlassView, result: Inference.Inference)
 		showWinner(view, result.topDigits[1], result.topProbs[1])
 	else
 		showWinner(view, -1, 0)
+	end
+end
+
+-- Pulses the halo around the winning digit. Runs on the Glass's own frame connection.
+function GlassView.celebrate(view: GlassView)
+	view.celebrateLeft = GlassConfig.CELEBRATE_SECONDS
+	view.parts.winnerLabel.TextColor3 = GlassConfig.CELEBRATE_TEXT_COLOR
+end
+
+-- Returns the strongest positive shown link feeding one neuron of a layer, or 0 if there is none.
+local function strongestEdge(result: Inference.Inference, layer: number, dst: number): number
+	local edges = result.edges
+	local best = 0
+	local bestValue = 0
+	for k = 1, result.edgeCount do
+		if edges.layer[k] == layer and edges.dst[k] == dst and edges.value[k] > bestValue then
+			best = k
+			bestValue = edges.value[k]
+		end
+	end
+	return best
+end
+
+-- Shows why the network chose `digit`: its strongest positive path back to the input stands out and
+-- every other link dims. The next result redraws all of them, since showLinks sees the levels change.
+function GlassView.highlightStrongestPath(view: GlassView, result: Inference.Inference, digit: number)
+	local beams = view.parts.beams
+	for k = 1, result.edgeCount do
+		view.beamLevel[k] = 0
+		view.beamSign[k] = 0
+		beams[k].Transparency = view.pathDimTransparency
+	end
+	local dst = digit + 1
+	for layer = #view.model.layers, 1, -1 do
+		local k = strongestEdge(result, layer, dst)
+		if k == 0 then
+			return
+		end
+		local beam = beams[k]
+		beam.Color = view.pathColor
+		beam.Transparency = view.pathTransparency
+		beam.Width0 = GlassConfig.PATH_WIDTH
+		beam.Width1 = GlassConfig.PATH_WIDTH
+		dst = result.edges.src[k]
 	end
 end
 

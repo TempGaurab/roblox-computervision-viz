@@ -1,0 +1,32 @@
+--!strict
+local TestKit = require("./lib/TestKit")
+local RateLimit = require("../src/server/RateLimit")
+
+return function(kit: TestKit.TestKit)
+	kit.test("allows at most the limit in any window", function()
+		local limit = RateLimit.new(2, 1)
+		kit.equal(RateLimit.allow(limit, "a", 10), true, "first")
+		kit.equal(RateLimit.allow(limit, "a", 10.1), true, "second")
+		kit.equal(RateLimit.allow(limit, "a", 10.2), false, "third in the window")
+		kit.equal(RateLimit.allow(limit, "a", 10.99), false, "still in the window")
+		kit.equal(RateLimit.allow(limit, "a", 11), true, "first has aged out")
+		kit.equal(RateLimit.allow(limit, "a", 11.05), false, "second has not")
+		kit.equal(RateLimit.allow(limit, "a", 11.1), true, "second has aged out")
+	end)
+
+	kit.test("rejected events don't extend the wait", function()
+		local limit = RateLimit.new(1, 1)
+		kit.equal(RateLimit.allow(limit, "a", 0), true, "first")
+		kit.equal(RateLimit.allow(limit, "a", 0.9), false, "rejected")
+		kit.equal(RateLimit.allow(limit, "a", 1), true, "a second after the first")
+	end)
+
+	kit.test("keys are separate, and forgetting one resets it", function()
+		local limit = RateLimit.new(1, 1)
+		kit.equal(RateLimit.allow(limit, "a", 0), true, "a")
+		kit.equal(RateLimit.allow(limit, "b", 0), true, "b")
+		kit.equal(RateLimit.allow(limit, "a", 0.5), false, "a again")
+		RateLimit.forget(limit, "a")
+		kit.equal(RateLimit.allow(limit, "a", 0.5), true, "a forgotten")
+	end)
+end

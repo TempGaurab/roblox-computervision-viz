@@ -12,7 +12,8 @@ local Config = {
 	},
 
 	Glass = {
-		-- Placeholder spot until stations place it (M5). Viewers stand on +Z, with input on their left.
+		-- One chamber on the lab's back wall; each client fills it with its own network. Viewers stand
+		-- on +Z, with input on their left.
 		ORIGIN = CFrame.new(0, 15, -60),
 		WIDTH = 44,
 		HEIGHT = 22,
@@ -101,6 +102,57 @@ local Config = {
 		BAR_BACKGROUND_COLOR = Color3.fromRGB(38, 46, 64),
 		BAR_COLOR = Color3.fromRGB(90, 170, 255),
 		WINNER_BAR_COLOR = Color3.fromRGB(190, 240, 255),
+
+		-- Feedback after a Submit.
+		PATH_COLOR = Color3.fromRGB(255, 235, 120), -- the strongest path, also the widest thing on screen
+		PATH_WIDTH = 0.5,
+		PATH_DIM_OPACITY = 0.04, -- every other link, while the path shows
+		CELEBRATE_SECONDS = 1.5,
+		CELEBRATE_SPEED = 9, -- radians per second
+		CELEBRATE_AMPLITUDE = 0.5, -- share of the halo's size
+		CELEBRATE_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
+	},
+
+	World = {
+		ROOM_WIDTH = 96,
+		ROOM_HEIGHT = 36,
+		ROOM_FRONT_Z = -66, -- just behind the Glass
+		ROOM_BACK_Z = 44, -- deep enough for the Draw Mode camera, which backs up a long way in portrait
+		WALL_THICKNESS = 2,
+		-- Bright values: the lab's ambient light is low, so these still read as dark.
+		FLOOR_COLOR = Color3.fromRGB(105, 112, 130),
+		WALL_COLOR = Color3.fromRGB(70, 76, 92),
+		STRIP_COLOR = Color3.fromRGB(70, 180, 255),
+		STRIP_HEIGHT = 0.2,
+		STRIP_DEPTH = 0.2,
+		STRIP_Y = 0.6,
+
+		SPAWN_POSITION = Vector3.new(0, 0.5, 14),
+		SPAWN_SIZE = Vector3.new(10, 1, 10),
+		SPAWN_COLOR = Color3.fromRGB(150, 160, 185),
+
+		STATION_COUNT = 4,
+		STATION_SPACING = 14,
+		CONSOLE_Z = -20,
+		CONSOLE_SIZE = Vector3.new(5, 3.5, 2),
+		CONSOLE_COLOR = Color3.fromRGB(170, 180, 205),
+		CONSOLE_LIGHT_HEIGHT = 0.15,
+		CONSOLE_TEXT = "DRAW",
+		CONSOLE_TEXT_COLOR = Color3.fromRGB(150, 225, 255),
+
+		PROMPT_ACTION = "Draw",
+		PROMPT_CHALLENGE = "Challenge",
+		PROMPT_FREE = "Free Draw",
+		PROMPT_CHALLENGE_KEY = Enum.KeyCode.E,
+		PROMPT_FREE_KEY = Enum.KeyCode.F,
+		PROMPT_DISTANCE = 12,
+		REACH_SLACK = 6, -- studs of lag allowed when the server checks a prompt's range
+	},
+
+	Net = {
+		SUBMITS_PER_SECOND = 2,
+		MAX_SUBMIT_BYTES = 8192,
+		STATION_EVENTS_PER_SECOND = 5,
 	},
 
 	Pad = {
@@ -156,18 +208,34 @@ local Config = {
 
 		MESSAGE_TOO_SMALL = "Draw bigger",
 		MESSAGE_LIMIT = "Clear to keep drawing",
+		MESSAGE_DRAW_FIRST = "Draw a digit first",
+		MESSAGE_RETRY = "Couldn't reach the server. Try again",
+
+		ROUND_WIDTH = 0.3, -- share of screen width, so it clears the docked pad on small screens
+		ROUND_GAP = 16, -- pixels between this and the top-3
+		PROMPT_HEIGHT = 56,
+		RESULT_HEIGHT = 60,
+		SCORE_HEIGHT = 26,
+		PROMPT_MAX_TEXT_SIZE = 42,
+		RESULT_MAX_TEXT_SIZE = 22,
+		SCORE_MAX_TEXT_SIZE = 18,
+		GOOD_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
+
+		PROMPT_CHALLENGE = "Draw %s",
+		PROMPT_FREE = "Free Draw",
+		RESULT_CORRECT = "Correct! That's %s",
+		RESULT_WRONG = "The network saw %s (%d%%)",
+		SCORE_LINE = "Score %d  ·  Streak %d",
+	},
+
+	Round = {
+		CLEAR_DELAY = 1.5, -- seconds a correct drawing stays up before the pad clears for the next digit
 	},
 
 	Dev = {
-		-- Letter keys: function keys need fn held on a Mac.
-		TOGGLE_DRAW_KEY = Enum.KeyCode.G,
+		-- A letter key: function keys need fn held on a Mac.
 		DUMP_STROKES_KEY = Enum.KeyCode.H,
 		FRAME_SAMPLES = 30,
-		READY_TEXT = "NeuralGlass running. Click here or press G to draw.",
-		READY_TEXT_SIZE = 18,
-		READY_WIDTH = 460,
-		READY_HEIGHT = 32,
-		READY_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
 	},
 }
 

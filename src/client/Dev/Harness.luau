@@ -5,7 +5,6 @@
 -- The command bar and Studio MCP get their own copy of this module, separate from the running client,
 -- so every call goes through a BindableFunction that the client's copy creates in attach().
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -42,6 +41,8 @@ local function statusOf(session: DrawSession.DrawSession): { [string]: any }
 		glassInstances = GlassView.instanceCount(session.glass),
 		glassUpdateMs = session.glass.lastStepSeconds * 1000,
 		activePackets = session.glass.activePackets,
+		mode = session.mode,
+		round = session.round,
 	}
 end
 
@@ -111,14 +112,6 @@ local function dumpStrokes(session: DrawSession.DrawSession): string
 	return encoded
 end
 
-local function toggleDrawMode(session: DrawSession.DrawSession)
-	if session.isActive then
-		DrawSession.exit(session)
-	else
-		DrawSession.enter(session, "free")
-	end
-end
-
 -- Called once by the running client, in Studio only.
 function Harness.attach(session: DrawSession.DrawSession)
 	if not RunService:IsStudio() then
@@ -147,45 +140,15 @@ function Harness.attach(session: DrawSession.DrawSession)
 	end
 	bridge.Parent = script
 
-	-- Until stations exist (M5), this is how to reach Draw Mode. H prints the current drawing.
+	-- H prints the current drawing.
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
 			return
 		end
-		if input.KeyCode == Config.Dev.TOGGLE_DRAW_KEY then
-			toggleDrawMode(session)
-		elseif input.KeyCode == Config.Dev.DUMP_STROKES_KEY then
+		if input.KeyCode == Config.Dev.DUMP_STROKES_KEY then
 			dumpStrokes(session)
 		end
 	end)
-end
-
--- Shows on screen that the client script got this far, and doubles as a Draw Mode button.
-function Harness.showReadyButton(session: DrawSession.DrawSession)
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "NeuralGlassDevReady"
-	gui.ResetOnSpawn = false
-
-	local button = Instance.new("TextButton")
-	button.BackgroundTransparency = 1
-	button.AnchorPoint = Vector2.new(0.5, 1)
-	button.Position = UDim2.fromScale(0.5, 1)
-	button.Size = UDim2.fromOffset(Config.Dev.READY_WIDTH, Config.Dev.READY_HEIGHT)
-	button.Font = Enum.Font.GothamMedium
-	button.TextSize = Config.Dev.READY_TEXT_SIZE
-	button.TextColor3 = Config.Dev.READY_TEXT_COLOR
-	button.Text = Config.Dev.READY_TEXT
-	button.Parent = gui
-	button.Activated:Connect(function()
-		toggleDrawMode(session)
-	end)
-	-- Draw Mode has its own Exit button, and the docked pad would sit under this label.
-	local camera = workspace.CurrentCamera
-	camera:GetPropertyChangedSignal("CameraType"):Connect(function()
-		button.Visible = camera.CameraType ~= Enum.CameraType.Scriptable
-	end)
-
-	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local function call(name: string, ...: any): any

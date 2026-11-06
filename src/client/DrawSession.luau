@@ -3,10 +3,13 @@
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strokes = require(ReplicatedStorage.Shared.NeuralCore.Strokes)
+local Protocol = require(ReplicatedStorage.Shared.Protocol)
 local Cleanup = require(script.Parent.Cleanup)
 local DrawMode = require(script.Parent.Pad.DrawMode)
 local GlassView = require(script.Parent.Glass.GlassView)
@@ -15,7 +18,9 @@ local Inference = require(script.Parent.Inference)
 local Pad = require(script.Parent.Pad.Pad)
 local PadView = require(script.Parent.Pad.PadView)
 
-export type Mode = "free" | "challenge"
+local Net = ReplicatedStorage.Net
+
+export type Mode = Protocol.Mode
 
 export type DrawSession = {
 	pad: Pad.Pad,
@@ -25,6 +30,8 @@ export type DrawSession = {
 	mode: Mode,
 	isActive: boolean,
 	limitReached: boolean,
+	isSubmitting: boolean,
+	round: Protocol.RoundState?,
 	activeCleanup: Cleanup.Cleanup,
 }
 
@@ -48,6 +55,25 @@ local function refresh(session: DrawSession)
 	GlassView.setResult(session.glass, inference)
 end
 
+-- "a 7", or "an 8".
+local function withArticle(digit: number): string
+	return `{if digit == 8 then "an" else "a"} {digit}`
+end
+
+local function showRound(session: DrawSession)
+	local round = session.round
+	local hud = session.hud
+	if round == nil or round.mode == "free" or round.target == nil then
+		Hud.setRound(hud, Config.Hud.PROMPT_FREE, "")
+	else
+		Hud.setRound(
+			hud,
+			string.format(Config.Hud.PROMPT_CHALLENGE, withArticle(round.target)),
+			string.format(Config.Hud.SCORE_LINE, round.score, round.streak)
+		)
+	end
+end
+
 local function frameCamera(session: DrawSession)
 	DrawMode.frame(PadView.dockedExtent(session.pad.view))
 end
@@ -64,13 +90,15 @@ function DrawSession.new(): DrawSession
 		onChanged = function()
 			session.limitReached = session.pad.limitReached
 			Inference.markDirty(session.inference)
+			Hud.setResult(session.hud, "", false)
 		end,
 		onLimit = function()
 			session.limitReached = true
 			refresh(session)
 		end,
 		onSubmit = function()
-			-- Validated Submit arrives with the game loop in M5.
+			-- Waits on the server, and this can be called from a keybind, which must not yield.
+			task.spawn(DrawSession.submit, session)
 		end,
 		onExit = function()
 			DrawSession.exit(session)
@@ -86,6 +114,8 @@ function DrawSession.new(): DrawSession
 		mode = "free",
 		isActive = false,
 		limitReached = false,
+		isSubmitting = false,
+		round = nil,
 		activeCleanup = Cleanup.new(),
 	}
 	return session
@@ -117,9 +147,12 @@ function DrawSession.enter(session: DrawSession, mode: Mode)
 	session.mode = mode
 
 	DrawMode.enter()
+	ProximityPromptService.Enabled = false
 	frameCamera(session)
 	Pad.open(session.pad, mode == "challenge")
 	Hud.setVisible(session.hud, true)
+	Hud.setResult(session.hud, "", false)
+	showRound(session)
 	refresh(session)
 
 	local cleanup = session.activeCleanup
@@ -164,6 +197,89 @@ function DrawSession.exit(session: DrawSession)
 	Pad.close(session.pad)
 	Hud.setVisible(session.hud, false)
 	DrawMode.exit()
+	ProximityPromptService.Enabled = true
+	-- Frees the station. Harmless if the server already released it.
+	Net.Station:FireServer("exit")
+end
+
+local function showSubmitResult(session: DrawSession, result: Protocol.SubmitResult, runCount: number)
+	local hud = session.hud
+	if result.rejected == "unreadable" then
+		Hud.setMessage(hud, Config.Hud.MESSAGE_TOO_SMALL)
+		return
+	elseif result.rejected ~= nil then
+		Hud.setMessage(hud, Config.Hud.MESSAGE_RETRY)
+		return
+	end
+
+	-- If the drawing has changed since it was sent, the Glass no longer shows what was scored.
+	local inference = session.inference
+	local isCurrent = inference.runCount == runCount and not inference.isDirty
+	if result.correct then
+		Hud.setResult(hud, string.format(Config.Hud.RESULT_CORRECT, withArticle(result.predicted)), true)
+		if isCurrent then
+			GlassView.celebrate(session.glass)
+			task.delay(Config.Round.CLEAR_DELAY, function()
+				local isUnchanged = inference.runCount == runCount and not inference.isDirty
+				if session.isActive and isUnchanged and not session.pad.isDrawing then
+					Pad.clear(session.pad)
+				end
+			end)
+		end
+	else
+		local percent = math.round(result.prob * 100)
+		Hud.setResult(hud, string.format(Config.Hud.RESULT_WRONG, withArticle(result.predicted), percent), false)
+		if isCurrent then
+			GlassView.highlightStrongestPath(session.glass, inference, result.predicted)
+		end
+	end
+end
+
+-- Sends the drawing to the server once and shows what comes back. The server is the only judge: the
+-- client's own prediction is never sent.
+function DrawSession.submit(session: DrawSession)
+	if not session.isActive or session.mode ~= "challenge" or session.isSubmitting or session.pad.isDrawing then
+		return
+	end
+	DrawSession.inferNow(session)
+	local status = session.inference.status
+	if status ~= "ok" then
+		Hud.setMessage(
+			session.hud,
+			if status == "empty" then Config.Hud.MESSAGE_DRAW_FIRST else Config.Hud.MESSAGE_TOO_SMALL
+		)
+		return
+	end
+
+	session.isSubmitting = true
+	local runCount = session.inference.runCount
+	local ok, result = pcall(function(): Protocol.SubmitResult
+		return Net.Submit:InvokeServer(Strokes.encode(session.pad.strokes))
+	end)
+	session.isSubmitting = false
+	if not session.isActive then
+		return
+	end
+	if ok then
+		showSubmitResult(session, result, runCount)
+	else
+		Hud.setMessage(session.hud, Config.Hud.MESSAGE_RETRY)
+	end
+end
+
+-- Follows the server: it grants and releases stations, and owns the round.
+function DrawSession.connectServer(session: DrawSession)
+	Net.Station.OnClientEvent:Connect(function(action: string, mode: Mode?)
+		if action == "enter" and mode ~= nil then
+			DrawSession.enter(session, mode)
+		elseif action == "exit" then
+			DrawSession.exit(session)
+		end
+	end)
+	Net.Round.OnClientEvent:Connect(function(round: Protocol.RoundState)
+		session.round = round
+		showRound(session)
+	end)
 end
 
 -- Leaves Draw Mode whenever the character dies or is replaced, so controls and camera are never stuck.

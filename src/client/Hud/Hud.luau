@@ -22,6 +22,10 @@ export type Hud = {
 	root: Frame,
 	rows: { Row },
 	message: TextLabel,
+	roundRoot: Frame,
+	prompt: TextLabel,
+	result: TextLabel,
+	score: TextLabel,
 }
 
 local Hud = {}
@@ -82,6 +86,20 @@ local function newRow(parent: Instance, index: number): Row
 	return { root = root, digit = digit, fill = fill, percent = percent, shownDigit = -1, shownPercent = -1 }
 end
 
+-- Text that shrinks to fit on small screens, up to the given size.
+local function newScaledLabel(parent: Instance, name: string, top: number, height: number, maxSize: number): TextLabel
+	local label = newLabel(parent, name, maxSize, HudConfig.TEXT_COLOR)
+	label.Position = UDim2.fromOffset(0, top)
+	label.Size = UDim2.new(1, 0, 0, height)
+	label.TextXAlignment = Enum.TextXAlignment.Right
+	label.TextScaled = true
+	label.TextWrapped = true
+	local constraint = Instance.new("UITextSizeConstraint")
+	constraint.MaxTextSize = maxSize
+	constraint.Parent = label
+	return label
+end
+
 function Hud.new(modelVersion: string): Hud
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "NeuralGlassHud"
@@ -113,12 +131,52 @@ function Hud.new(modelVersion: string): Hud
 	version.TextXAlignment = Enum.TextXAlignment.Right
 	version.Text = `model {modelVersion}`
 
+	local promptHeight = HudConfig.PROMPT_HEIGHT
+	local resultHeight = HudConfig.RESULT_HEIGHT
+	local scoreHeight = HudConfig.SCORE_HEIGHT
+	local roundRoot = Instance.new("Frame")
+	roundRoot.Name = "Round"
+	roundRoot.BackgroundTransparency = 1
+	roundRoot.AnchorPoint = Vector2.new(1, 0)
+	roundRoot.Position = UDim2.new(1, -(HudConfig.MARGIN + HudConfig.WIDTH + HudConfig.ROUND_GAP), 0, HudConfig.MARGIN)
+	roundRoot.Size = UDim2.new(HudConfig.ROUND_WIDTH, 0, 0, promptHeight + scoreHeight + resultHeight)
+	roundRoot.Visible = false
+	roundRoot.Parent = gui
+
+	local prompt = newScaledLabel(roundRoot, "Prompt", 0, promptHeight, HudConfig.PROMPT_MAX_TEXT_SIZE)
+	prompt.Font = Enum.Font.GothamBold
+	local score = newScaledLabel(roundRoot, "Score", promptHeight, scoreHeight, HudConfig.SCORE_MAX_TEXT_SIZE)
+	score.TextColor3 = HudConfig.MUTED_TEXT_COLOR
+	local result =
+		newScaledLabel(roundRoot, "Result", promptHeight + scoreHeight, resultHeight, HudConfig.RESULT_MAX_TEXT_SIZE)
+
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-	return { gui = gui, root = root, rows = rows, message = message }
+	return {
+		gui = gui,
+		root = root,
+		rows = rows,
+		message = message,
+		roundRoot = roundRoot,
+		prompt = prompt,
+		result = result,
+		score = score,
+	}
 end
 
 function Hud.setVisible(hud: Hud, visible: boolean)
 	hud.root.Visible = visible
+	hud.roundRoot.Visible = visible
+end
+
+-- `promptText` says what to do; `scoreText` is empty in Free Draw.
+function Hud.setRound(hud: Hud, promptText: string, scoreText: string)
+	hud.prompt.Text = promptText
+	hud.score.Text = scoreText
+end
+
+function Hud.setResult(hud: Hud, text: string, isGood: boolean)
+	hud.result.Text = text
+	hud.result.TextColor3 = if isGood then HudConfig.GOOD_TEXT_COLOR else HudConfig.WARNING_TEXT_COLOR
 end
 
 function Hud.setMessage(hud: Hud, text: string)
