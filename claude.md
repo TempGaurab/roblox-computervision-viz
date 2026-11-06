@@ -85,7 +85,7 @@ assets/                    source PNGs and sounds; hand-made *.rbxm decor mapped
 ```
 
 - Remotes are declared in `default.project.json` under `ReplicatedStorage.Net` (`Submit`: RemoteFunction; `Round`, `Station`: RemoteEvent) so they exist before any script runs. Lighting and its BloomEffect are declared there too.
-- `server/World.luau` builds the lab and the station anchors from Config. Anything decorated by hand in Studio must be exported to `assets/*.rbxm` and mapped in the project file: `rojo build` alone must reproduce the whole place.
+- `server/World.luau` builds the lab (arches, floor lights, signs, spawn pad, drifting motes) and the station anchors from Config. Anything decorated by hand in Studio must be exported to `assets/*.rbxm` and mapped in the project file: `rojo build` alone must reproduce the whole place.
 - Requires: inside `NeuralCore`, relative string requires only (`require("./Model")`), which resolve the same in Roblox and Lune. Everywhere else, instance requires (`require(ReplicatedStorage.Shared.NeuralCore.Model)`). The client bootstrap waits for `game.Loaded` before requiring NeuralCore.
 - `.gitignore`: `build/ sourcemap.json training/data/ training/out/ .venv/ Packages/ __pycache__/`. `ModelData.luau` **is** committed so the game builds without Python.
 
@@ -219,7 +219,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 
 ## The Pad (`src/client/Pad/`)
 
-- ScreenGui with `ResetOnSpawn = false`, styled as a tablet: a rounded body with a bezel, a square drawing screen, and the controls in its lower edge. It docks left in landscape and at the bottom in portrait; the camera frames the Glass in the rest of the viewport (recompute on resize and orientation change).
+- ScreenGui with `ResetOnSpawn = false`, styled as a tablet: a rounded body with a bezel, a square drawing screen, and the controls in its lower edge. It docks left in landscape and at the bottom in portrait; the camera frames the Glass in the rest of the viewport (recompute on resize and orientation change). The HUD never sits over the Glass: `Hud/HudLayout.luau` places it and reports the area left, with a compact strip on phones, narrow windows and portrait.
 - Input: start on the pad's `InputBegan` (MouseButton1 or Touch). Mouse: track `MouseMovement` while the button is held. Touch: track only the InputObject that started the stroke and ignore other fingers. Finish on `InputEnded`. Convert positions with the pad's AbsolutePosition/AbsoluteSize, and check the GUI inset once with a mouse and once in the Device Emulator.
 - Add a point only after the pointer moves ≥ 1% of the pad size; quantize to u16 immediately; enforce the Strokes limits (HUD: "Clear to keep drawing").
 - Ink: pooled Frames (rotated segments plus round joints with UICorner), at most 2,048.

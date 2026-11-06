@@ -150,7 +150,7 @@ local function stepCountdown(session: DrawSession)
 end
 
 local function frameCamera(session: DrawSession)
-	DrawMode.frame(PadView.dockedExtent(session.pad.view))
+	DrawMode.frame(Hud.layOut(session.hud, PadView.dockedExtent(session.pad.view)))
 end
 
 -- Runs the pending inference immediately. The harness uses this to read a result without waiting.

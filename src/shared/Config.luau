@@ -9,6 +9,8 @@ local Config = {
 	DrawMode = {
 		ACTION_NAME = "NeuralGlassDrawKeys",
 		FRAMING_MARGIN = 1.08, -- how much larger than the Glass the framed view is
+		MIN_FREE_SHARE = 0.1, -- the least of the screen the Glass is ever fitted into
+		HIDDEN_SIGNS = { "Title", "Guide", "Scoreboard" }, -- children of the lab, not shown while drawing
 	},
 
 	Glass = {
@@ -121,23 +123,130 @@ local Config = {
 		WALL_THICKNESS = 2,
 		-- Bright values: the lab's ambient light is low, so these still read as dark.
 		FLOOR_COLOR = Color3.fromRGB(105, 112, 130),
+		FLOOR_REFLECTANCE = 0.08,
 		WALL_COLOR = Color3.fromRGB(70, 76, 92),
-		STRIP_COLOR = Color3.fromRGB(70, 180, 255),
+		GLOW_COLOR = Color3.fromRGB(70, 180, 255),
+		ACCENT_COLOR = Color3.fromRGB(95, 60, 190), -- dark, because Neon washes out toward white
 		STRIP_HEIGHT = 0.2,
 		STRIP_DEPTH = 0.2,
 		STRIP_Y = 0.6,
+		TEXT_PIXELS_PER_STUD = 25,
 
-		SPAWN_POSITION = Vector3.new(0, 0.5, 14),
-		SPAWN_SIZE = Vector3.new(10, 1, 10),
+		GRID_SPACING = 16,
+		GRID_LINE_WIDTH = 0.1,
+		GRID_LINE_HEIGHT = 0.04,
+		GRID_COLOR = Color3.fromRGB(14, 42, 66), -- dim enough to stay below the bloom threshold
+		WALKWAY_HALF_WIDTH = 5,
+		WALKWAY_LINE_WIDTH = 0.18,
+
+		ARCH_COUNT = 4,
+		ARCH_FIRST_Z = -48,
+		ARCH_SPACING = 28,
+		ARCH_HALF_WIDTH = 44,
+		ARCH_HEIGHT = 33,
+		ARCH_CHAMFER = 7,
+		ARCH_BEAM = 1.6,
+		ARCH_DEPTH = 1.4,
+		ARCH_GLOW = 0.14,
+		ARCH_COLOR = Color3.fromRGB(95, 104, 124),
+		LAMP_COLOR = Color3.fromRGB(150, 205, 255),
+		LAMP_RANGE = 45,
+		LAMP_BRIGHTNESS = 1.2,
+
+		SPAWN_POSITION = Vector3.new(0, 0, 14),
+		SPAWN_DIAMETER = 12,
+		SPAWN_HEIGHT = 0.6,
+		SPAWN_RING = 0.5,
 		SPAWN_COLOR = Color3.fromRGB(150, 160, 185),
+
+		SIGN_DEPTH = 0.5,
+		TITLE_TEXT = "NEURAL  GLASS",
+		TITLE_TEXT_SIZE = 110,
+		TITLE_WIDTH = 44,
+		TITLE_HEIGHT = 6,
+		TITLE_Y = 30.5,
+
+		-- Mirrors the leaderboard, on the other side of the Glass.
+		GUIDE_POSITION = Vector3.new(-36, 14, -65.75),
+		GUIDE_WIDTH = 20,
+		GUIDE_HEIGHT = 24,
+		GUIDE_TRIM = 0.16,
+		GUIDE_COLOR = Color3.fromRGB(14, 17, 25),
+		GUIDE_TITLE_COLOR = Color3.fromRGB(235, 245, 255),
+		GUIDE_TEXT_COLOR = Color3.fromRGB(150, 225, 255),
+		GUIDE_TITLE_SIZE = 50,
+		GUIDE_TEXT_SIZE = 32,
+		GUIDE_LINES = {
+			"HOW TO PLAY",
+			"Walk up to a console",
+			"SOLO\nBeat your best streak",
+			"COMPETE\nA 60-second sprint",
+			"FREE DRAW\nJust explore",
+			"HOW IT WORKS\nOn the wall behind you",
+		},
+
+		HOW_IT_WORKS = {
+			ROW_WIDTH = 84,
+			TITLE = "HOW IT WORKS",
+			TITLE_Y = 29,
+			TITLE_HEIGHT = 5,
+			TITLE_TEXT_SIZE = 90,
+
+			CARD_Y = 15,
+			CARD_WIDTH = 18,
+			CARD_HEIGHT = 20,
+			CARD_GAP = 4,
+			CARD_COLOR = Color3.fromRGB(14, 17, 25),
+			TRIM = 0.16,
+			LINK_THICKNESS = 0.16,
+
+			NUMBER_SHARE = 0.17, -- of a card's height
+			HEADING_SHARE = 0.13,
+			BODY_MARGIN = 0.08, -- of a card's width
+			NUMBER_TEXT_SIZE = 60,
+			HEADING_TEXT_SIZE = 44,
+			BODY_TEXT_SIZE = 40,
+			HEADING_COLOR = Color3.fromRGB(235, 245, 255),
+			BODY_COLOR = Color3.fromRGB(150, 225, 255),
+
+			-- Each step's body gets the model's real numbers.
+			HEADINGS = { "YOU DRAW", "IT SIMPLIFIES", "NEURONS FIRE", "IT ANSWERS" },
+			BODY_DRAW = "Your strokes are saved as points, so it works the same on any screen.",
+			BODY_SEE = "Your digit is scaled and centered on a %d x %d grid. Those %d numbers are all the network sees.",
+			BODY_THINK = "They flow through %s neurons. Blue links push a neuron up, orange links push it down.",
+			BODY_ANSWER = "%d outputs, one per digit. The highest is its guess, and the percent is how sure it is.",
+
+			FOOTER_Y = 2.6,
+			FOOTER_HEIGHT = 4,
+			FOOTER_TEXT_SIZE = 28,
+			FOOTER = "Trained on MNIST handwritten digits (LeCun, Cortes, Burges), and %.1f%% right on its test set. It runs on your device. Your drawing is only sent when you press Submit, and is never kept or shown to anyone.",
+		},
+
+		MOTES_POSITION = Vector3.new(0, 16, 12),
+		MOTES_SIZE = Vector3.new(88, 30, 58),
+		MOTES_RATE = 10,
+		MOTES_LIFETIME = NumberRange.new(8, 14),
+		MOTES_SPEED = NumberRange.new(0.3, 1.2),
+		MOTES_PARTICLE_SIZE = 0.22,
+		MOTES_TRANSPARENCY = 0.25,
 
 		STATION_COUNT = 4,
 		STATION_SPACING = 14,
 		CONSOLE_Z = -20,
-		CONSOLE_SIZE = Vector3.new(5, 3.5, 2),
-		CONSOLE_COLOR = Color3.fromRGB(170, 180, 205),
-		CONSOLE_LIGHT_HEIGHT = 0.15,
+		CONSOLE_SIZE = Vector3.new(4.5, 3, 1.6),
+		CONSOLE_COLOR = Color3.fromRGB(150, 160, 185),
+		CONSOLE_SCREEN_THICKNESS = 0.2,
+		CONSOLE_SCREEN_DEPTH = 3,
+		CONSOLE_SCREEN_LIFT = 0.5,
+		CONSOLE_SCREEN_TILT = math.rad(55), -- from upright
+		CONSOLE_SCREEN_COLOR = Color3.fromRGB(14, 17, 25),
+		CONSOLE_EDGE = 0.1,
+		CONSOLE_BEACON_SIZE = 0.4,
+		CONSOLE_BEACON_Y = 5.5,
+		CONSOLE_RING_DIAMETER = 7,
+		CONSOLE_RING_COLOR = Color3.fromRGB(10, 32, 54),
 		CONSOLE_TEXT = "DRAW",
+		CONSOLE_TEXT_SIZE = 30,
 		CONSOLE_TEXT_COLOR = Color3.fromRGB(150, 225, 255),
 
 		PROMPT_ACTION = "Draw",
@@ -191,15 +300,47 @@ local Config = {
 		TOP_COUNT = 3,
 		MARGIN = 16,
 		WIDTH = 220,
-		ROW_HEIGHT = 30,
-		ROW_GAP = 6,
-		DIGIT_WIDTH = 28,
-		PERCENT_WIDTH = 52,
-		TEXT_SIZE = 20,
-		MESSAGE_HEIGHT = 28,
-		MESSAGE_TEXT_SIZE = 16,
-		VERSION_HEIGHT = 14,
+		-- The layout for large screens.
+		Roomy = {
+			ROW_HEIGHT = 30,
+			ROW_GAP = 6,
+			DIGIT_WIDTH = 28,
+			PERCENT_WIDTH = 52,
+			TEXT_SIZE = 20,
+			MESSAGE_HEIGHT = 28,
+			MESSAGE_TEXT_SIZE = 16,
+			VERSION_HEIGHT = 14,
+			PROMPT_HEIGHT = 56,
+			SCORE_HEIGHT = 26,
+			RESULT_HEIGHT = 60,
+			STANDINGS_TEXT_SIZE = 18,
+		},
+		-- One strip above the Glass, for phones, narrow windows and portrait.
+		Compact = {
+			MARGIN = 8,
+			GAP = 8,
+			MIN_FREE_WIDTH = 600, -- pixels beside the pad; any less and the roomy layout covers the Glass
+			MIN_FREE_HEIGHT = 500,
+			STANDINGS_SHARE = 0.28, -- of the strip's width
+			TOP_SHARE = 0.3,
+			ROW_HEIGHT = 16,
+			ROW_GAP = 3,
+			DIGIT_WIDTH = 16,
+			PERCENT_WIDTH = 34,
+			TEXT_SIZE = 13,
+			MESSAGE_HEIGHT = 16,
+			MESSAGE_TEXT_SIZE = 12,
+			VERSION_HEIGHT = 0, -- hidden
+			PROMPT_HEIGHT = 32,
+			SCORE_HEIGHT = 16,
+			RESULT_HEIGHT = 28,
+			STANDINGS_TEXT_SIZE = 12,
+		},
 		VERSION_TEXT_SIZE = 11,
+		-- A backing for the compact strip, so the lab's neon trim can't run through the text.
+		STRIP_COLOR = Color3.fromRGB(14, 17, 25),
+		STRIP_TRANSPARENCY = 0.25,
+		STRIP_PADDING = 6,
 		CORNER_RADIUS = 6,
 
 		TEXT_COLOR = Color3.fromRGB(235, 245, 255),
@@ -216,9 +357,6 @@ local Config = {
 
 		ROUND_WIDTH = 0.3, -- share of screen width, so it clears the docked pad on small screens
 		ROUND_GAP = 16, -- pixels between this and the top-3
-		PROMPT_HEIGHT = 56,
-		RESULT_HEIGHT = 60,
-		SCORE_HEIGHT = 26,
 		PROMPT_MAX_TEXT_SIZE = 42,
 		RESULT_MAX_TEXT_SIZE = 22,
 		SCORE_MAX_TEXT_SIZE = 18,
@@ -232,7 +370,6 @@ local Config = {
 
 		-- Compete.
 		STANDINGS_HEIGHT = 110,
-		STANDINGS_TEXT_SIZE = 18,
 		STANDINGS_YOU = "You",
 		STANDINGS_LINE = "%d. %s  %d",
 		MESSAGE_WAIT = "Wait for the next sprint",
