@@ -13,6 +13,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Base64 = require(ReplicatedStorage.Shared.NeuralCore.Base64)
 local Strokes = require(ReplicatedStorage.Shared.NeuralCore.Strokes)
 local DrawSession = require(script.Parent.Parent.DrawSession)
+local GlassView = require(script.Parent.Parent.Glass.GlassView)
 local Fixtures = require(script.Parent.Fixtures)
 local Pad = require(script.Parent.Parent.Pad.Pad)
 
@@ -36,6 +37,10 @@ local function statusOf(session: DrawSession.DrawSession): { [string]: any }
 		pointCount = session.pad.strokes.pointCount,
 		strokeCount = session.pad.strokes.strokeCount,
 		inkFrames = session.pad.ink.jointCount + session.pad.ink.segmentCount,
+		edgeCount = inference.edgeCount,
+		glassInstances = GlassView.instanceCount(session.glass),
+		glassUpdateMs = session.glass.lastStepSeconds * 1000,
+		activePackets = session.glass.activePackets,
 	}
 end
 
@@ -80,6 +85,7 @@ local function selfTest(session: DrawSession.DrawSession): { [string]: any }
 		})
 	end
 	local frameMs = sampleFrameMs()
+	local glassUpdateMs = session.glass.lastStepSeconds * 1000
 
 	Pad.clear(session.pad)
 	DrawSession.inferNow(session)
@@ -92,7 +98,8 @@ local function selfTest(session: DrawSession.DrawSession): { [string]: any }
 		correct = correct,
 		slowestInferenceMs = slowestMs,
 		frameMs = frameMs,
-		glassInstances = 0, -- The Glass arrives in M4.
+		glassUpdateMs = glassUpdateMs,
+		glassInstances = GlassView.instanceCount(session.glass),
 		results = results,
 	}
 end

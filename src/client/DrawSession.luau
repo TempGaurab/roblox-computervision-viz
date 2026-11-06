@@ -9,15 +9,18 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cleanup = require(script.Parent.Cleanup)
 local DrawMode = require(script.Parent.Pad.DrawMode)
+local GlassView = require(script.Parent.Glass.GlassView)
 local Hud = require(script.Parent.Hud.Hud)
 local Inference = require(script.Parent.Inference)
 local Pad = require(script.Parent.Pad.Pad)
+local PadView = require(script.Parent.Pad.PadView)
 
 export type Mode = "free" | "challenge"
 
 export type DrawSession = {
 	pad: Pad.Pad,
 	hud: Hud.Hud,
+	glass: GlassView.GlassView,
 	inference: Inference.Inference,
 	mode: Mode,
 	isActive: boolean,
@@ -42,6 +45,12 @@ local function refresh(session: DrawSession)
 	else
 		Hud.setMessage(hud, "")
 	end
+	GlassView.setResult(session.glass, inference)
+end
+
+local function frameCamera(session: DrawSession)
+	local screen, dockedExtent = PadView.dockedExtent(session.pad.view)
+	DrawMode.frame(screen, dockedExtent)
 end
 
 -- Runs the pending inference immediately. The harness uses this to read a result without waiting.
@@ -73,6 +82,7 @@ function DrawSession.new(): DrawSession
 	session = {
 		pad = pad,
 		hud = Hud.new(inference.model.version),
+		glass = GlassView.new(inference.model),
 		inference = inference,
 		mode = "free",
 		isActive = false,
@@ -108,11 +118,18 @@ function DrawSession.enter(session: DrawSession, mode: Mode)
 	session.mode = mode
 
 	DrawMode.enter()
+	frameCamera(session)
 	Pad.open(session.pad, mode == "challenge")
 	Hud.setVisible(session.hud, true)
 	refresh(session)
 
 	local cleanup = session.activeCleanup
+	Cleanup.connect(
+		cleanup,
+		session.pad.view.gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			frameCamera(session)
+		end)
+	)
 	Cleanup.connect(
 		cleanup,
 		RunService.PreRender:Connect(function()

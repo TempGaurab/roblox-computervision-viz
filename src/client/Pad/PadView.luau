@@ -43,6 +43,25 @@ local function newButton(parent: Instance, name: string, text: string, color: Co
 	return button
 end
 
+local function sideFor(screen: Vector2): number
+	local chrome = PadConfig.GAP + PadConfig.CONTROLS_HEIGHT
+	local margin = PadConfig.MARGIN
+	if screen.Y > screen.X then
+		return math.min(screen.X - 2 * margin, screen.Y * PadConfig.PORTRAIT_MAX_HEIGHT - chrome)
+	end
+	return math.min(screen.X * PadConfig.LANDSCAPE_MAX_WIDTH, screen.Y - 2 * margin - chrome)
+end
+
+-- Returns the screen size and the pixels the docked pad takes from the side or bottom it docks to.
+function PadView.dockedExtent(view: PadView): (Vector2, number)
+	local screen = view.gui.AbsoluteSize
+	local side = sideFor(screen)
+	if screen.Y > screen.X then
+		return screen, side + PadConfig.GAP + PadConfig.CONTROLS_HEIGHT + 2 * PadConfig.MARGIN
+	end
+	return screen, side + 2 * PadConfig.MARGIN
+end
+
 -- Returns where the root sits when open, and where it hides when closed.
 local function layOut(view: PadView): (UDim2, UDim2)
 	local screen = view.gui.AbsoluteSize
@@ -51,16 +70,14 @@ local function layOut(view: PadView): (UDim2, UDim2)
 	local controlsHeight = PadConfig.CONTROLS_HEIGHT
 	local chrome = gap + controlsHeight
 
-	local side: number
+	local side = sideFor(screen)
 	local open: UDim2
 	local closed: UDim2
 	if screen.Y > screen.X then
-		side = math.min(screen.X - 2 * margin, screen.Y * PadConfig.PORTRAIT_MAX_HEIGHT - chrome)
 		local x = (screen.X - side) / 2
 		open = UDim2.fromOffset(x, screen.Y - side - chrome - margin)
 		closed = UDim2.fromOffset(x, screen.Y + margin)
 	else
-		side = math.min(screen.X * PadConfig.LANDSCAPE_MAX_WIDTH, screen.Y - 2 * margin - chrome)
 		local y = (screen.Y - side - chrome) / 2
 		open = UDim2.fromOffset(margin, y)
 		closed = UDim2.fromOffset(-side - margin, y)

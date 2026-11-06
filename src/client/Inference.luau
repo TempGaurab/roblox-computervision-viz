@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Explain = require(ReplicatedStorage.Shared.NeuralCore.Explain)
 local Model = require(ReplicatedStorage.Shared.NeuralCore.Model)
 local ModelData = require(ReplicatedStorage.Shared.NeuralCore.ModelData)
 local Preprocess = require(ReplicatedStorage.Shared.NeuralCore.Preprocess)
@@ -19,6 +20,8 @@ export type Inference = {
 	scratch: Model.Scratch,
 	preprocessScratch: Preprocess.Scratch,
 	input: { number },
+	edges: Explain.Edges,
+	edgeCount: number,
 	status: Status,
 	isDirty: boolean,
 	lastRunAt: number,
@@ -38,6 +41,8 @@ function Inference.new(): Inference
 		scratch = Model.newScratch(model),
 		preprocessScratch = Preprocess.newScratch(),
 		input = Preprocess.newOutput(ModelData.preprocess),
+		edges = Explain.newEdges(model),
+		edgeCount = 0,
 		status = "empty",
 		isDirty = false,
 		lastRunAt = -math.huge,
@@ -82,10 +87,12 @@ function Inference.run(inference: Inference, strokes: Strokes.Strokes)
 	inference.isDirty = false
 	inference.lastRunAt = started
 	inference.runCount += 1
+	inference.edgeCount = 0
 	if strokes.pointCount == 0 then
 		inference.status = "empty"
 	elseif Preprocess.run(ModelData.preprocess, strokes, inference.preprocessScratch, inference.input) then
 		Model.forward(inference.model, inference.input, inference.scratch)
+		inference.edgeCount = Explain.selectEdges(inference.model, inference.input, inference.scratch, inference.edges)
 		rankTop(inference)
 		inference.status = "ok"
 	else

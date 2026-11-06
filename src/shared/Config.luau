@@ -7,10 +7,87 @@ local Config = {
 	},
 
 	DrawMode = {
-		-- Placeholder view until the Glass exists (M4) and stations place it (M5).
-		CAMERA_POSITION = Vector3.new(0, 20, 40),
-		CAMERA_TARGET = Vector3.new(0, 10, 0),
 		ACTION_NAME = "NeuralGlassDrawKeys",
+		FRAMING_MARGIN = 1.08, -- how much larger than the Glass the framed view is
+	},
+
+	Glass = {
+		-- Placeholder spot until stations place it (M5). Viewers stand on +Z, with input on their left.
+		ORIGIN = CFrame.new(0, 15, -60),
+		WIDTH = 44,
+		HEIGHT = 22,
+		DEPTH = 8,
+		FRAME_THICKNESS = 0.6,
+
+		-- Layout, in studs from the chamber center.
+		NETWORK_VIEW_SIZE = 12,
+		NETWORK_VIEW_X = -15.5,
+		LAYERS_LEFT_X = -9.5, -- neuron layers share this span, with equal gaps around them
+		LAYERS_RIGHT_X = 14,
+		OUTPUT_PANEL_X = 18,
+		OUTPUT_PANEL_WIDTH = 8,
+		ORB_SPACING = 1.5,
+		HIDDEN_ROWS = 8,
+		WINNER_Y = 9.2,
+		WINNER_WIDTH = 16,
+		WINNER_HEIGHT = 3,
+
+		PIXELS_PER_STUD = 25,
+		WINNER_TEXT_SIZE = 64,
+		OUTPUT_TEXT_SIZE = 32,
+		OUTPUT_BAR_HEIGHT = 0.05, -- share of panel height
+		OUTPUT_DIGIT_WIDTH = 0.2, -- share of panel width
+		OUTPUT_BAR_WIDTH = 0.75,
+
+		ORB_MIN_SIZE = 0.5,
+		ORB_MAX_SIZE = 1.2,
+		HALO_SIZE = 2.4,
+		HALO_TRANSPARENCY = 0.75,
+
+		-- Propagation: displayed values chase targets after a per-layer lag, in seconds.
+		HIDDEN_LAG_STEP = 0.08,
+		SMOOTHING_TAU = 0.12,
+		HISTORY_SIZE = 4, -- inference snapshots kept: enough to cover the longest lag at the highest rate
+
+		-- Quantized steps, so writes skip small changes and colors and sequences are made once.
+		ORB_LEVELS = 32,
+		PIXEL_LEVELS = 32,
+		LINK_LEVELS = 8,
+		LINK_MIN_WIDTH = 0.04,
+		LINK_MAX_WIDTH = 0.28,
+		LINK_MIN_OPACITY = 0.15,
+		LINK_MAX_OPACITY = 0.95,
+
+		PACKET_COUNT = 300,
+		PACKET_SECONDS = 0.45, -- time to cross one link
+		PACKET_MAX_RATE = 4, -- packets per second on the strongest link
+		PACKET_SIZE = 0.32,
+		PACKET_NEGATIVE_SIZE = 0.18, -- smaller, so sign never relies on color alone
+		-- Parked above the map: anything below FallenPartsDestroyHeight could be destroyed.
+		PACKET_PARK_POSITION = Vector3.new(0, 5000, 0),
+
+		IDLE_BASE = 0.06,
+		IDLE_AMPLITUDE = 0.05,
+		IDLE_SPEED = 1.2,
+		IDLE_PACKET_RATE = 3, -- ambient packets per second
+		PHASE_STEP = 0.7, -- radians between neighboring orbs
+
+		BACK_COLOR = Color3.fromRGB(8, 10, 16),
+		FRAME_COLOR = Color3.fromRGB(28, 34, 48),
+		PANE_COLOR = Color3.fromRGB(150, 200, 255),
+		PANE_TRANSPARENCY = 0.9,
+		PANE_REFLECTANCE = 0.05,
+		ORB_DIM_COLOR = Color3.fromRGB(16, 30, 58),
+		ORB_BRIGHT_COLOR = Color3.fromRGB(190, 240, 255),
+		PIXEL_OFF_COLOR = Color3.fromRGB(10, 13, 20),
+		PIXEL_ON_COLOR = Color3.fromRGB(235, 245, 255),
+		-- A colorblind-safe pair.
+		POSITIVE_COLOR = Color3.fromRGB(70, 180, 255),
+		NEGATIVE_COLOR = Color3.fromRGB(255, 140, 40),
+		TEXT_COLOR = Color3.fromRGB(235, 245, 255),
+		BAR_BACKGROUND_COLOR = Color3.fromRGB(28, 34, 48),
+		BAR_COLOR = Color3.fromRGB(90, 170, 255),
+		WINNER_BAR_COLOR = Color3.fromRGB(190, 240, 255),
 	},
 
 	Pad = {

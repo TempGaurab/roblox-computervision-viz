@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M3 code committed but its playtest checklist is unconfirmed; M4 in progress. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
+> **Status:** M3 and M4 code committed, but neither playtest checklist is confirmed and M4's budgets are unmeasured; M5 waits on that. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -194,10 +194,10 @@ Layout, left → right (input → output), inside a chamber behind a fake-glass 
 
 Encoding:
 
-- Neuron brightness and size = `clamp(a / actScale, 0, 1)`.
+- Neuron brightness and size = `clamp(a / actScale, 0, 1)`. Output orbs and bars use the probability instead, which reads better than a scaled logit.
 - Links are Beams between Attachments showing the contribution `a_src · w`: color is the sign (positive cyan-blue, negative orange, a colorblind-safe pair); width and brightness follow the normalized |value|.
 - Packets (small Neon balls) travel along the shown links, spawning at a rate proportional to |value|. Negative packets are also smaller, so the sign never relies on color alone.
-- Propagation: displayed values chase their targets with a per-layer lag (input 0, H1 80, H2 160, output 240 ms) and exponential smoothing (τ ≈ 120 ms), so packets "arrive" as the next layer lights up.
+- Propagation: neuron values chase their targets with a per-layer lag (H1 80, H2 160, output 240 ms) and exponential smoothing (τ ≈ 120 ms), so packets "arrive" as the next layer lights up. The network view and links update at once, unsmoothed, so the view always shows exactly what the model saw.
 - Empty pad → idle shimmer: dim breathing orbs and a few ambient packets. A reduced-motion setting turns packets off and keeps the links.
 
 Build rules:
