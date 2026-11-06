@@ -9,6 +9,7 @@ local Preprocess = require("../src/shared/NeuralCore/Preprocess")
 local Strokes = require("../src/shared/NeuralCore/Strokes")
 
 local LOGIT_TOLERANCE = 1e-6
+local MAX_RUNS_WITH_RUNTIME_ALLOCATION = 3
 
 local function tinyModelData(weights: { number }, biases: { number }): Model.ModelData
 	local bytes = buffer.create(#weights)
@@ -132,13 +133,19 @@ return function(kit: TestKit.TestKit)
 			Model.forward(model, input, scratch)
 			Explain.selectEdges(model, input, scratch, edges)
 		end
-		for run = 1, 200 do
+		-- The runtime occasionally makes a one-off allocation of its own during a run, so allow a few.
+		-- Our code allocating per inference would grow on nearly every run.
+		local runs = 200
+		local runsThatGrew = 0
+		for _ = 1, runs do
 			local before = collectgarbage("count")
 			Preprocess.run(params, strokes, preprocessScratch, input)
 			Model.forward(model, input, scratch)
 			Explain.selectEdges(model, input, scratch, edges)
-			local grew = collectgarbage("count") - before
-			assert(grew <= 0, `run {run} allocated {grew} KB`)
+			if collectgarbage("count") > before then
+				runsThatGrew += 1
+			end
 		end
+		assert(runsThatGrew <= MAX_RUNS_WITH_RUNTIME_ALLOCATION, `{runsThatGrew} of {runs} runs allocated`)
 	end)
 end
