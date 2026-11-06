@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M3 and M4 code committed, but neither playtest checklist is confirmed and M4's budgets are unmeasured; M5 waits on that. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
+> **Status:** M3 and M4 code committed. M3's mouse input, controls and respawn pass in a Studio playtest; touch is unchecked. M4's budgets are unmeasured on a phone. M5 waits on those. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -216,7 +216,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - Input: start on the pad's `InputBegan` (MouseButton1 or Touch). Mouse: track `MouseMovement` while the button is held. Touch: track only the InputObject that started the stroke and ignore other fingers. Finish on `InputEnded`. Convert positions with the pad's AbsolutePosition/AbsoluteSize, and check the GUI inset once with a mouse and once in the Device Emulator.
 - Add a point only after the pointer moves ≥ 1% of the pad size; quantize to u16 immediately; enforce the Strokes limits (HUD: "Clear to keep drawing").
 - Ink: pooled Frames (rotated segments plus round joints with UICorner), at most 2,048.
-- Controls: Clear, Undo stroke, Submit (Challenge), Exit; keys C, Z, Enter, Esc. On gamepad, B exits; drawing with a gamepad is out of scope for v1.
+- Controls: Clear, Undo stroke, Submit (Challenge), Exit; keys C, Z, Enter, X. On gamepad, B exits; drawing with a gamepad is out of scope for v1.
 - Draw Mode sets the camera to `Scriptable` and disables character controls (see `PlayerModule` under Roblox facts); restore both on exit and on respawn.
 
 ## Server & networking (`src/server/`)
@@ -238,6 +238,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - **Client-created instances don't replicate.** That's intended: each player's Glass is theirs alone.
 - **Buffers** can be sent through remotes; ours are capped at 8 KB.
 - **`RenderStepped`** is superseded by `PreRender` for new work.
+- **Esc** belongs to the Roblox menu: scripts never see it, through `UserInputService` or `ContextActionService`. → X exits Draw Mode.
 - **`PlayerModule`** is injected at `StarterPlayer.PlayerModule` when the place uses the input action system, not under `PlayerScripts`, so waiting on `PlayerScripts` hangs forever. Its API is also different: `ControlModule.Enabled` replaces `GetControls()`. `Pad/DrawMode.luau` handles both.
 
 If the engine behaves differently from this list, tell the human and update it.
@@ -272,7 +273,7 @@ Definition of done for every change:
 3. `screen_capture` to look at the Glass; `get_console_output` must show no errors or warnings from our scripts.
 4. `start_stop_play` to stop.
 
-When Pad input code changes, also drag across the pad with `user_mouse_input`. Never use the MCP script-writing tools (Rule 1).
+`execute_luau` restores the camera type if it changed while the script ran, so don't yield across a Draw Mode change or a death and then trust `CameraType`. When Pad input code changes, also drag across the pad with `user_mouse_input`. Never use the MCP script-writing tools (Rule 1).
 
 In Studio playtests, **G** or the green on-screen button toggles Draw Mode (until stations exist in M5) and **H** prints the current drawing. Avoid function keys: on a Mac they need fn held. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
 

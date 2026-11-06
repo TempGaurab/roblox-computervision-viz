@@ -104,7 +104,7 @@ local function handleKey(session: DrawSession, inputState: Enum.UserInputState, 
 		if session.mode == "challenge" then
 			session.pad.callbacks.onSubmit()
 		end
-	elseif keyCode == Enum.KeyCode.Escape or keyCode == Enum.KeyCode.ButtonB then
+	elseif keyCode == Enum.KeyCode.X or keyCode == Enum.KeyCode.ButtonB then
 		DrawSession.exit(session)
 	end
 end
@@ -147,7 +147,7 @@ function DrawSession.enter(session: DrawSession, mode: Mode)
 		Enum.KeyCode.C,
 		Enum.KeyCode.Z,
 		Enum.KeyCode.Return,
-		Enum.KeyCode.Escape,
+		Enum.KeyCode.X,
 		Enum.KeyCode.ButtonB
 	)
 	Cleanup.addTask(cleanup, function()

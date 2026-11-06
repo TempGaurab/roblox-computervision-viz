@@ -2,6 +2,7 @@
 -- Turns mouse and touch input on the pad surface into strokes, in unit pad space. Only the finger that
 -- started a stroke is tracked. Input keeps being tracked off the pad until release; Strokes clamps it.
 
+local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 
 local Cleanup = require(script.Parent.Parent.Cleanup)
@@ -69,6 +70,11 @@ function PadInput.connect(surface: GuiObject, callbacks: Callbacks, cleanup: Cle
 			end
 		end)
 	)
+
+	-- The release never reaches us once the Roblox menu or another window has the input, so end the
+	-- stroke now. Otherwise it would keep drawing with no button held.
+	Cleanup.connect(cleanup, GuiService.MenuOpened:Connect(finish))
+	Cleanup.connect(cleanup, UserInputService.WindowFocusReleased:Connect(finish))
 
 	Cleanup.addTask(cleanup, finish)
 end
