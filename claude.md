@@ -1,7 +1,7 @@
 # CLAUDE.md — Neural Glass
 
 > Working title. A Roblox experience that makes MNIST digit classification visible.
-> **Status:** M2 done (model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet); next up is M3. Update this line as milestones land.
+> **Status:** M3 code committed but its playtest checklist is unconfirmed; M4 in progress. Model `b665ebc1`: float 98.34%, int8 98.32%, no recorded fixtures yet. Update this line as milestones land.
 
 The player draws a digit (0–9) on a drawing pad. While they draw, a small neural network running in Luau classifies it live, and the forward pass plays out inside **the Glass**: a glass chamber where signals flow from the 28×28 image the network sees, through two layers of glowing neurons, to ten output nodes, where the winning digit lights up.
 
@@ -272,6 +272,8 @@ Definition of done for every change:
 4. `start_stop_play` to stop.
 
 When Pad input code changes, also drag across the pad with `user_mouse_input`. Never use the MCP script-writing tools (Rule 1).
+
+In Studio playtests, **F2** toggles Draw Mode (until stations exist in M5) and **F3** prints the current drawing. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
 
 `Dev/Harness.luau` does nothing unless `RunService:IsStudio()`. It exposes `selfTest()`, `replay(strokesBase64)`, `state()` (prediction, probabilities, model version, timings, instance counts) and `dumpStrokes()`, which prints the current drawing as base64 so the human can save it as a fixture.
 
