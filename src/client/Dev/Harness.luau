@@ -5,6 +5,7 @@
 -- The command bar and Studio MCP get their own copy of this module, separate from the running client,
 -- so every call goes through a BindableFunction that the client's copy creates in attach().
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -153,6 +154,26 @@ function Harness.attach(session: DrawSession.DrawSession)
 			dumpStrokes(session)
 		end
 	end)
+end
+
+-- Shows on screen, without needing the Output window, that the client script got this far.
+function Harness.showReadyLabel()
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "NeuralGlassDevReady"
+	gui.ResetOnSpawn = false
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.AnchorPoint = Vector2.new(0.5, 1)
+	label.Position = UDim2.fromScale(0.5, 1)
+	label.Size = UDim2.new(1, 0, 0, Config.Dev.READY_HEIGHT)
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = Config.Dev.READY_TEXT_SIZE
+	label.TextColor3 = Config.Dev.READY_TEXT_COLOR
+	label.Text = Config.Dev.READY_TEXT
+	label.Parent = gui
+
+	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local function call(name: string, ...: any): any

@@ -66,20 +66,20 @@ local Config = {
 		-- Parked above the map: anything below FallenPartsDestroyHeight could be destroyed.
 		PACKET_PARK_POSITION = Vector3.new(0, 5000, 0),
 
-		IDLE_BASE = 0.06,
-		IDLE_AMPLITUDE = 0.05,
+		IDLE_BASE = 0.25,
+		IDLE_AMPLITUDE = 0.1,
 		IDLE_SPEED = 1.2,
 		IDLE_PACKET_RATE = 3, -- ambient packets per second
 		PHASE_STEP = 0.7, -- radians between neighboring orbs
 
-		BACK_COLOR = Color3.fromRGB(8, 10, 16),
-		FRAME_COLOR = Color3.fromRGB(28, 34, 48),
+		BACK_COLOR = Color3.fromRGB(22, 28, 42),
+		FRAME_COLOR = Color3.fromRGB(70, 180, 255), -- Neon: the chamber has to read from across the room
 		PANE_COLOR = Color3.fromRGB(150, 200, 255),
 		PANE_TRANSPARENCY = 0.9,
 		PANE_REFLECTANCE = 0.05,
-		ORB_DIM_COLOR = Color3.fromRGB(16, 30, 58),
+		ORB_DIM_COLOR = Color3.fromRGB(30, 60, 110),
 		ORB_BRIGHT_COLOR = Color3.fromRGB(190, 240, 255),
-		PIXEL_OFF_COLOR = Color3.fromRGB(10, 13, 20),
+		PIXEL_OFF_COLOR = Color3.fromRGB(16, 20, 30),
 		PIXEL_ON_COLOR = Color3.fromRGB(235, 245, 255),
 		-- A colorblind-safe pair.
 		POSITIVE_COLOR = Color3.fromRGB(70, 180, 255),
@@ -141,6 +141,10 @@ local Config = {
 		TOGGLE_DRAW_KEY = Enum.KeyCode.F2,
 		DUMP_STROKES_KEY = Enum.KeyCode.F3,
 		FRAME_SAMPLES = 30,
+		READY_TEXT = "NeuralGlass client running. Press F2 to draw.",
+		READY_TEXT_SIZE = 18,
+		READY_HEIGHT = 32,
+		READY_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
 	},
 }
 

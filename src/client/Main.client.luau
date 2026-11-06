@@ -20,6 +20,7 @@ local session = DrawSession.new()
 if isStudio then
 	local Harness = require(script.Parent.Dev.Harness)
 	Harness.attach(session)
+	Harness.showReadyLabel()
 	print("[NeuralGlass] client ready: the Glass is built at Workspace.TheGlass. Press F2 to draw.")
 end
 

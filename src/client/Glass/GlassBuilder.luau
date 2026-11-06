@@ -113,7 +113,7 @@ local function buildChamber(root: Instance)
 	local outerWidth = width + 2 * thickness
 	local frameDepth = depth + thickness
 	for _, side in { -1, 1 } do
-		newBox(
+		local horizontal = newBox(
 			root,
 			"FrameHorizontal",
 			Vector3.new(outerWidth, thickness, frameDepth),
@@ -121,7 +121,8 @@ local function buildChamber(root: Instance)
 			frameColor,
 			0
 		)
-		newBox(
+		horizontal.Material = Enum.Material.Neon
+		local vertical = newBox(
 			root,
 			"FrameVertical",
 			Vector3.new(thickness, height, frameDepth),
@@ -129,6 +130,7 @@ local function buildChamber(root: Instance)
 			frameColor,
 			0
 		)
+		vertical.Material = Enum.Material.Neon
 	end
 end
 
