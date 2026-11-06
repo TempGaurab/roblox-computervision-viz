@@ -262,7 +262,7 @@ Definition of done for every change:
 4. Changed the Pad, Glass, HUD or server flow → playtest through the Studio MCP server if it's connected; otherwise finish with a short manual playtest checklist for the human.
 5. Retrained → report float, int8 and fixture accuracy and the new `modelVersion`, with goldens regenerated in the same commit.
 
-**Studio MCP.** The server is built into Studio; the human enables it under Assistant → … → Manage MCP Servers → _Enable Studio as MCP server_, then uses Quick connect → Claude Code. With `rojo serve` running and the Rojo plugin connected:
+**Studio MCP.** The server is built into Studio; the human enables it under Assistant → … → Manage MCP Servers → _Enable Studio as MCP server_, then uses Quick connect → Claude Code. Or register it directly with `claude mcp add --scope local roblox-studio -- /Applications/RobloxStudio.app/Contents/MacOS/StudioMCP --stdio` (macOS) and start a new Claude Code session. With `rojo serve` running and the Rojo plugin connected:
 
 1. `list_roblox_studios` for the `studio_id`, then `start_stop_play` to start a playtest.
 2. `execute_luau` with `datamodel_type` = `Client`:
