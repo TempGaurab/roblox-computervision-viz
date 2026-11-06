@@ -106,6 +106,7 @@ python -m pip install -r training/requirements.txt   # inside the venv: torch, t
 python -m training.train               # -> training/out/model.pt; prints float test accuracy
 python -m training.export              # -> ModelData.luau, Dev/Fixtures.luau, tests/golden/*; prints accuracies
 python -m training.eval_strokes        # accuracy on recorded drawings in tests/fixtures/strokes
+python -m scripts.brand_art            # -> assets/brand/thumbnail.png, logo.png from the real model (macOS fonts)
 ```
 
 Tool versions are pinned in `rokit.toml`. `scripts/check.sh` also type-checks `src` with `luau-lsp`, downloading the Roblox definitions matching the pinned version into `build/` on first run.
