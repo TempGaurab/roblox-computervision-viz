@@ -138,11 +138,13 @@ local Config = {
 	},
 
 	Dev = {
-		TOGGLE_DRAW_KEY = Enum.KeyCode.F2,
-		DUMP_STROKES_KEY = Enum.KeyCode.F3,
+		-- Letter keys: function keys need fn held on a Mac.
+		TOGGLE_DRAW_KEY = Enum.KeyCode.G,
+		DUMP_STROKES_KEY = Enum.KeyCode.H,
 		FRAME_SAMPLES = 30,
-		READY_TEXT = "NeuralGlass client running. Press F2 to draw.",
+		READY_TEXT = "NeuralGlass running. Click here or press G to draw.",
 		READY_TEXT_SIZE = 18,
+		READY_WIDTH = 460,
 		READY_HEIGHT = 32,
 		READY_TEXT_COLOR = Color3.fromRGB(150, 240, 170),
 	},

@@ -111,6 +111,14 @@ local function dumpStrokes(session: DrawSession.DrawSession): string
 	return encoded
 end
 
+local function toggleDrawMode(session: DrawSession.DrawSession)
+	if session.isActive then
+		DrawSession.exit(session)
+	else
+		DrawSession.enter(session, "free")
+	end
+end
+
 -- Called once by the running client, in Studio only.
 function Harness.attach(session: DrawSession.DrawSession)
 	if not RunService:IsStudio() then
@@ -139,39 +147,38 @@ function Harness.attach(session: DrawSession.DrawSession)
 	end
 	bridge.Parent = script
 
-	-- Until stations exist (M5), this is how to reach Draw Mode. F3 prints the current drawing.
+	-- Until stations exist (M5), this is how to reach Draw Mode. H prints the current drawing.
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		if gameProcessed then
 			return
 		end
 		if input.KeyCode == Config.Dev.TOGGLE_DRAW_KEY then
-			if session.isActive then
-				DrawSession.exit(session)
-			else
-				DrawSession.enter(session, "free")
-			end
+			toggleDrawMode(session)
 		elseif input.KeyCode == Config.Dev.DUMP_STROKES_KEY then
 			dumpStrokes(session)
 		end
 	end)
 end
 
--- Shows on screen, without needing the Output window, that the client script got this far.
-function Harness.showReadyLabel()
+-- Shows on screen that the client script got this far, and doubles as a Draw Mode button.
+function Harness.showReadyButton(session: DrawSession.DrawSession)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "NeuralGlassDevReady"
 	gui.ResetOnSpawn = false
 
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.AnchorPoint = Vector2.new(0.5, 1)
-	label.Position = UDim2.fromScale(0.5, 1)
-	label.Size = UDim2.new(1, 0, 0, Config.Dev.READY_HEIGHT)
-	label.Font = Enum.Font.GothamMedium
-	label.TextSize = Config.Dev.READY_TEXT_SIZE
-	label.TextColor3 = Config.Dev.READY_TEXT_COLOR
-	label.Text = Config.Dev.READY_TEXT
-	label.Parent = gui
+	local button = Instance.new("TextButton")
+	button.BackgroundTransparency = 1
+	button.AnchorPoint = Vector2.new(0.5, 1)
+	button.Position = UDim2.fromScale(0.5, 1)
+	button.Size = UDim2.fromOffset(Config.Dev.READY_WIDTH, Config.Dev.READY_HEIGHT)
+	button.Font = Enum.Font.GothamMedium
+	button.TextSize = Config.Dev.READY_TEXT_SIZE
+	button.TextColor3 = Config.Dev.READY_TEXT_COLOR
+	button.Text = Config.Dev.READY_TEXT
+	button.Parent = gui
+	button.Activated:Connect(function()
+		toggleDrawMode(session)
+	end)
 
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end

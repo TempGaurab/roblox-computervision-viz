@@ -273,7 +273,7 @@ Definition of done for every change:
 
 When Pad input code changes, also drag across the pad with `user_mouse_input`. Never use the MCP script-writing tools (Rule 1).
 
-In Studio playtests, **F2** toggles Draw Mode (until stations exist in M5) and **F3** prints the current drawing. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
+In Studio playtests, **G** or the green on-screen button toggles Draw Mode (until stations exist in M5) and **H** prints the current drawing. Avoid function keys: on a Mac they need fn held. The command bar and Studio MCP get their own copy of a required module, so Harness calls reach the running client through a BindableFunction it creates under itself.
 
 `Dev/Harness.luau` does nothing unless `RunService:IsStudio()`. It exposes `selfTest()`, `replay(strokesBase64)`, `state()` (prediction, probabilities, model version, timings, instance counts) and `dumpStrokes()`, which prints the current drawing as base64 so the human can save it as a fixture.
 
