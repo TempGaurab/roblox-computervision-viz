@@ -49,8 +49,7 @@ local function refresh(session: DrawSession)
 end
 
 local function frameCamera(session: DrawSession)
-	local screen, dockedExtent = PadView.dockedExtent(session.pad.view)
-	DrawMode.frame(screen, dockedExtent)
+	DrawMode.frame(PadView.dockedExtent(session.pad.view))
 end
 
 -- Runs the pending inference immediately. The harness uses this to read a result without waiting.

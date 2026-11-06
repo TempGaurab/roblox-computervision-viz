@@ -217,7 +217,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - Add a point only after the pointer moves ≥ 1% of the pad size; quantize to u16 immediately; enforce the Strokes limits (HUD: "Clear to keep drawing").
 - Ink: pooled Frames (rotated segments plus round joints with UICorner), at most 2,048.
 - Controls: Clear, Undo stroke, Submit (Challenge), Exit; keys C, Z, Enter, Esc. On gamepad, B exits; drawing with a gamepad is out of scope for v1.
-- Draw Mode sets the camera to `Scriptable` and disables character controls (`PlayerModule:GetControls():Disable()`); restore both on exit and on respawn.
+- Draw Mode sets the camera to `Scriptable` and disables character controls (see `PlayerModule` under Roblox facts); restore both on exit and on respawn.
 
 ## Server & networking (`src/server/`)
 
@@ -238,6 +238,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 - **Client-created instances don't replicate.** That's intended: each player's Glass is theirs alone.
 - **Buffers** can be sent through remotes; ours are capped at 8 KB.
 - **`RenderStepped`** is superseded by `PreRender` for new work.
+- **`PlayerModule`** is injected at `StarterPlayer.PlayerModule` when the place uses the input action system, not under `PlayerScripts`, so waiting on `PlayerScripts` hangs forever. Its API is also different: `ControlModule.Enabled` replaces `GetControls()`. `Pad/DrawMode.luau` handles both.
 
 If the engine behaves differently from this list, tell the human and update it.
 

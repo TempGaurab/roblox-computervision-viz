@@ -3,6 +3,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 
@@ -10,25 +11,41 @@ local GlassConfig = Config.Glass
 
 local DrawMode = {}
 
-local function controls(): any
+-- Places using the input action system get Roblox's PlayerModule under StarterPlayer, with an
+-- `Enabled` flag; older ones get it under PlayerScripts, with GetControls(). Handle both, and don't
+-- wait on either: the module doesn't move once the client has loaded.
+local function setControlsEnabled(isEnabled: boolean)
 	local playerScripts = Players.LocalPlayer:WaitForChild("PlayerScripts")
+	local module = StarterPlayer:FindFirstChild("PlayerModule") or playerScripts:FindFirstChild("PlayerModule")
+	if module == nil then
+		warn("[NeuralGlass] PlayerModule not found; can't change character controls")
+		return
+	end
 	-- Roblox's own module, outside our source tree, so the type checker can't follow this require.
-	local playerModule = (require :: any)(playerScripts:WaitForChild("PlayerModule"))
-	return playerModule:GetControls()
+	local playerModule = (require :: any)(module)
+	if playerModule.ControlModule ~= nil then
+		playerModule.ControlModule.Enabled = isEnabled
+	elseif isEnabled then
+		playerModule:GetControls():Enable()
+	else
+		playerModule:GetControls():Disable()
+	end
 end
 
 function DrawMode.enter()
-	controls():Disable()
+	setControlsEnabled(false)
 	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
 end
 
 -- Aims square at the Glass and fits it in the screen area the docked pad leaves free, shifting the
 -- camera so the Glass is centered in that area rather than in the whole screen.
-function DrawMode.frame(screen: Vector2, dockedExtent: number)
+function DrawMode.frame(dockedExtent: number)
+	local camera = workspace.CurrentCamera
+	-- The viewport, not a ScreenGui's size: the camera also renders under the top bar inset.
+	local screen = camera.ViewportSize
 	if screen.X <= 0 or screen.Y <= 0 then
 		return
 	end
-	local camera = workspace.CurrentCamera
 	local isPortrait = screen.Y > screen.X
 	local freeWidth = if isPortrait then 1 else math.max(1 - dockedExtent / screen.X, 0.1)
 	local freeHeight = if isPortrait then math.max(1 - dockedExtent / screen.Y, 0.1) else 1
@@ -36,8 +53,9 @@ function DrawMode.frame(screen: Vector2, dockedExtent: number)
 	local tanHalfFov = math.tan(math.rad(camera.FieldOfView) / 2)
 	local aspect = screen.X / screen.Y
 	local margin = Config.DrawMode.FRAMING_MARGIN
-	local fitWidth = GlassConfig.WIDTH * margin / (2 * tanHalfFov * aspect * freeWidth)
-	local fitHeight = GlassConfig.HEIGHT * margin / (2 * tanHalfFov * freeHeight)
+	local frameSpan = 2 * GlassConfig.FRAME_THICKNESS
+	local fitWidth = (GlassConfig.WIDTH + frameSpan) * margin / (2 * tanHalfFov * aspect * freeWidth)
+	local fitHeight = (GlassConfig.HEIGHT + frameSpan) * margin / (2 * tanHalfFov * freeHeight)
 	local distance = math.max(fitWidth, fitHeight)
 
 	local viewHeight = 2 * distance * tanHalfFov
@@ -51,7 +69,7 @@ function DrawMode.frame(screen: Vector2, dockedExtent: number)
 end
 
 function DrawMode.exit()
-	controls():Enable()
+	setControlsEnabled(true)
 	local camera = workspace.CurrentCamera
 	camera.CameraType = Enum.CameraType.Custom
 	local character = Players.LocalPlayer.Character

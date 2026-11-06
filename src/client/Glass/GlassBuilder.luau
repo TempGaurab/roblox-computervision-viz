@@ -112,8 +112,11 @@ local function buildChamber(root: Instance)
 
 	local outerWidth = width + 2 * thickness
 	local frameDepth = depth + thickness
+	local trim = GlassConfig.TRIM_THICKNESS
+	local trimColor = GlassConfig.TRIM_COLOR
+	local trimZ = (frameDepth + trim) / 2
 	for _, side in { -1, 1 } do
-		local horizontal = newBox(
+		newBox(
 			root,
 			"FrameHorizontal",
 			Vector3.new(outerWidth, thickness, frameDepth),
@@ -121,8 +124,7 @@ local function buildChamber(root: Instance)
 			frameColor,
 			0
 		)
-		horizontal.Material = Enum.Material.Neon
-		local vertical = newBox(
+		newBox(
 			root,
 			"FrameVertical",
 			Vector3.new(thickness, height, frameDepth),
@@ -130,7 +132,26 @@ local function buildChamber(root: Instance)
 			frameColor,
 			0
 		)
-		vertical.Material = Enum.Material.Neon
+
+		-- Only this line glows: a whole Neon frame washes out everything drawn in front of its walls.
+		local horizontalTrim = newBox(
+			root,
+			"TrimHorizontal",
+			Vector3.new(width + 2 * trim, trim, trim),
+			Vector3.new(0, side * (height + trim) / 2, trimZ),
+			trimColor,
+			0
+		)
+		horizontalTrim.Material = Enum.Material.Neon
+		local verticalTrim = newBox(
+			root,
+			"TrimVertical",
+			Vector3.new(trim, height, trim),
+			Vector3.new(side * (width + trim) / 2, 0, trimZ),
+			trimColor,
+			0
+		)
+		verticalTrim.Material = Enum.Material.Neon
 	end
 end
 
@@ -175,6 +196,16 @@ local function buildNetworkView(root: Instance): (Part, { Frame }, { Vector3 }, 
 	local grid = ModelData.preprocess.grid
 	local size = GlassConfig.NETWORK_VIEW_SIZE
 	local thickness = GlassConfig.FRAME_THICKNESS
+	local bezelSize = size + 2 * GlassConfig.NETWORK_VIEW_BEZEL
+	local bezel = newBox(
+		root,
+		"NetworkViewBezel",
+		Vector3.new(bezelSize, bezelSize, thickness / 2),
+		Vector3.new(GlassConfig.NETWORK_VIEW_X, 0, 0),
+		GlassConfig.BEZEL_COLOR,
+		0
+	)
+	bezel.Material = Enum.Material.Neon -- self-lit, so it shows in the dark lab; too dim to bloom
 	local view = newBox(
 		root,
 		"NetworkView",
@@ -212,6 +243,12 @@ local function buildNetworkView(root: Instance): (Part, { Frame }, { Vector3 }, 
 		end
 	end
 	return view, frames, worldPositions, localPositions
+end
+
+local function roundCorners(frame: Frame)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = frame
 end
 
 local function buildOutputPanel(root: Instance, positions: { Vector3 }): { OutputRow }
@@ -253,6 +290,7 @@ local function buildOutputPanel(root: Instance, positions: { Vector3 }): { Outpu
 		bar.Position = UDim2.fromScale(digitWidth, centerY)
 		bar.Size = UDim2.fromScale(GlassConfig.OUTPUT_BAR_WIDTH, barHeight)
 		bar.Parent = gui
+		roundCorners(bar)
 
 		local fill = Instance.new("Frame")
 		fill.Name = "Fill"
@@ -260,6 +298,7 @@ local function buildOutputPanel(root: Instance, positions: { Vector3 }): { Outpu
 		fill.BorderSizePixel = 0
 		fill.Size = UDim2.fromScale(0, 1)
 		fill.Parent = bar
+		roundCorners(fill)
 
 		rows[index] = { fill = fill, shownPercent = 0, isWinner = false }
 	end
@@ -288,6 +327,41 @@ local function buildWinnerLabel(root: Instance): TextLabel
 	return label
 end
 
+-- One small label under each column, so the Glass explains itself left to right.
+local function buildCaptions(root: Instance, centers: { number })
+	local width = GlassConfig.WIDTH
+	local part = newBox(
+		root,
+		"Captions",
+		Vector3.new(width, GlassConfig.CAPTION_HEIGHT, 0.1),
+		Vector3.new(0, GlassConfig.CAPTION_Y, 0),
+		GlassConfig.BACK_COLOR,
+		1
+	)
+	local gui = newSurfaceGui(part)
+
+	local function addCaption(text: string, centerX: number)
+		local label = Instance.new("TextLabel")
+		label.Name = "Caption"
+		label.BackgroundTransparency = 1
+		label.AnchorPoint = Vector2.new(0.5, 0)
+		label.Position = UDim2.fromScale(0.5 + centerX / width, 0)
+		label.Size = UDim2.fromScale(GlassConfig.CAPTION_WIDTH / width, 1)
+		label.Font = Enum.Font.GothamMedium
+		label.TextSize = GlassConfig.CAPTION_TEXT_SIZE
+		label.TextColor3 = GlassConfig.CAPTION_COLOR
+		label.Text = text
+		label.Parent = gui
+	end
+
+	addCaption(GlassConfig.CAPTION_INPUT, GlassConfig.NETWORK_VIEW_X)
+	local outputLayer = #centers
+	for l = 1, outputLayer - 1 do
+		addCaption(string.format(GlassConfig.CAPTION_HIDDEN, l), centers[l])
+	end
+	addCaption(GlassConfig.CAPTION_OUTPUT, GlassConfig.OUTPUT_PANEL_X)
+end
+
 function GlassBuilder.build(model: Model.Model): Parts
 	-- Stays unparented until complete, so the engine processes the build once.
 	local root = Instance.new("Folder")
@@ -307,6 +381,7 @@ function GlassBuilder.build(model: Model.Model): Parts
 	local outputRows: { OutputRow } = {}
 	local origin = GlassConfig.ORIGIN
 	local centers = layerCenters(model)
+	buildCaptions(root, centers)
 	for l, layer in model.layers do
 		local isOutput = l == layerCount
 		local count = layer.outSize
@@ -366,7 +441,7 @@ function GlassBuilder.build(model: Model.Model): Parts
 		packets[index] = newBall(packetFolder, "Packet", GlassConfig.PACKET_SIZE, parked, GlassConfig.POSITIVE_COLOR)
 	end
 
-	local halo = newBall(root, "Halo", GlassConfig.HALO_SIZE, parked, GlassConfig.ORB_BRIGHT_COLOR)
+	local halo = newBall(root, "Halo", GlassConfig.HALO_SIZE, parked, GlassConfig.HALO_COLOR)
 	halo.Transparency = GlassConfig.HALO_TRANSPARENCY
 
 	local winnerLabel = buildWinnerLabel(root)

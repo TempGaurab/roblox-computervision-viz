@@ -103,12 +103,12 @@ function Hud.new(modelVersion: string): Hud
 	end
 
 	local message = newLabel(root, "Message", HudConfig.MESSAGE_TEXT_SIZE, HudConfig.WARNING_TEXT_COLOR)
-	message.Position = UDim2.fromOffset(0, rowsHeight)
+	message.Position = UDim2.fromOffset(0, rowsHeight + HudConfig.VERSION_HEIGHT)
 	message.Size = UDim2.new(1, 0, 0, HudConfig.MESSAGE_HEIGHT)
 	message.TextXAlignment = Enum.TextXAlignment.Right
 
 	local version = newLabel(root, "Version", HudConfig.VERSION_TEXT_SIZE, HudConfig.MUTED_TEXT_COLOR)
-	version.Position = UDim2.fromOffset(0, rowsHeight + HudConfig.MESSAGE_HEIGHT)
+	version.Position = UDim2.fromOffset(0, rowsHeight)
 	version.Size = UDim2.new(1, 0, 0, HudConfig.VERSION_HEIGHT)
 	version.TextXAlignment = Enum.TextXAlignment.Right
 	version.Text = `model {modelVersion}`

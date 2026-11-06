@@ -179,6 +179,11 @@ function Harness.showReadyButton(session: DrawSession.DrawSession)
 	button.Activated:Connect(function()
 		toggleDrawMode(session)
 	end)
+	-- Draw Mode has its own Exit button, and the docked pad would sit under this label.
+	local camera = workspace.CurrentCamera
+	camera:GetPropertyChangedSignal("CameraType"):Connect(function()
+		button.Visible = camera.CameraType ~= Enum.CameraType.Scriptable
+	end)
 
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end

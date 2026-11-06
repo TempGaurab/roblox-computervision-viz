@@ -16,12 +16,14 @@ local Config = {
 		ORIGIN = CFrame.new(0, 15, -60),
 		WIDTH = 44,
 		HEIGHT = 22,
-		DEPTH = 8,
+		DEPTH = 5,
 		FRAME_THICKNESS = 0.6,
+		TRIM_THICKNESS = 0.16, -- the glowing line around the front of the frame
 
 		-- Layout, in studs from the chamber center.
 		NETWORK_VIEW_SIZE = 12,
 		NETWORK_VIEW_X = -15.5,
+		NETWORK_VIEW_BEZEL = 0.18,
 		LAYERS_LEFT_X = -9.5, -- neuron layers share this span, with equal gaps around them
 		LAYERS_RIGHT_X = 14,
 		OUTPUT_PANEL_X = 18,
@@ -38,11 +40,18 @@ local Config = {
 		OUTPUT_BAR_HEIGHT = 0.05, -- share of panel height
 		OUTPUT_DIGIT_WIDTH = 0.2, -- share of panel width
 		OUTPUT_BAR_WIDTH = 0.75,
+		CAPTION_Y = -9.3,
+		CAPTION_HEIGHT = 1.4,
+		CAPTION_WIDTH = 9, -- each caption, in studs
+		CAPTION_TEXT_SIZE = 22,
+		CAPTION_INPUT = "WHAT IT SEES",
+		CAPTION_HIDDEN = "LAYER %d",
+		CAPTION_OUTPUT = "ANSWER",
 
 		ORB_MIN_SIZE = 0.5,
-		ORB_MAX_SIZE = 1.2,
-		HALO_SIZE = 2.4,
-		HALO_TRANSPARENCY = 0.75,
+		ORB_MAX_SIZE = 1.1,
+		HALO_SIZE = 2.2,
+		HALO_TRANSPARENCY = 0.6,
 
 		-- Propagation: displayed values chase targets after a per-layer lag, in seconds.
 		HIDDEN_LAG_STEP = 0.08,
@@ -53,9 +62,9 @@ local Config = {
 		ORB_LEVELS = 32,
 		PIXEL_LEVELS = 32,
 		LINK_LEVELS = 8,
-		LINK_MIN_WIDTH = 0.04,
-		LINK_MAX_WIDTH = 0.28,
-		LINK_MIN_OPACITY = 0.15,
+		LINK_MIN_WIDTH = 0.03,
+		LINK_MAX_WIDTH = 0.22,
+		LINK_MIN_OPACITY = 0.08,
 		LINK_MAX_OPACITY = 0.95,
 
 		PACKET_COUNT = 300,
@@ -73,19 +82,23 @@ local Config = {
 		PHASE_STEP = 0.7, -- radians between neighboring orbs
 
 		BACK_COLOR = Color3.fromRGB(22, 28, 42),
-		FRAME_COLOR = Color3.fromRGB(70, 180, 255), -- Neon: the chamber has to read from across the room
+		FRAME_COLOR = Color3.fromRGB(38, 44, 58),
+		TRIM_COLOR = Color3.fromRGB(70, 180, 255), -- Neon: the chamber has to read from across the room
+		BEZEL_COLOR = Color3.fromRGB(58, 70, 92),
 		PANE_COLOR = Color3.fromRGB(150, 200, 255),
 		PANE_TRANSPARENCY = 0.9,
 		PANE_REFLECTANCE = 0.05,
 		ORB_DIM_COLOR = Color3.fromRGB(30, 60, 110),
-		ORB_BRIGHT_COLOR = Color3.fromRGB(190, 240, 255),
+		ORB_BRIGHT_COLOR = Color3.fromRGB(120, 215, 255), -- keeps its hue under bloom, unlike near-white
+		HALO_COLOR = Color3.fromRGB(90, 190, 255),
 		PIXEL_OFF_COLOR = Color3.fromRGB(16, 20, 30),
 		PIXEL_ON_COLOR = Color3.fromRGB(235, 245, 255),
 		-- A colorblind-safe pair.
 		POSITIVE_COLOR = Color3.fromRGB(70, 180, 255),
 		NEGATIVE_COLOR = Color3.fromRGB(255, 140, 40),
 		TEXT_COLOR = Color3.fromRGB(235, 245, 255),
-		BAR_BACKGROUND_COLOR = Color3.fromRGB(28, 34, 48),
+		CAPTION_COLOR = Color3.fromRGB(130, 145, 170),
+		BAR_BACKGROUND_COLOR = Color3.fromRGB(38, 46, 64),
 		BAR_COLOR = Color3.fromRGB(90, 170, 255),
 		WINNER_BAR_COLOR = Color3.fromRGB(190, 240, 255),
 	},

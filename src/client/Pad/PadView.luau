@@ -59,14 +59,14 @@ local function sideFor(screen: Vector2): number
 	return math.min(screen.X * PadConfig.LANDSCAPE_MAX_WIDTH, screen.Y - 2 * margin - chrome)
 end
 
--- Returns the screen size and the pixels the docked pad takes from the side or bottom it docks to.
-function PadView.dockedExtent(view: PadView): (Vector2, number)
+-- Returns the pixels the docked pad takes from the side or bottom it docks to.
+function PadView.dockedExtent(view: PadView): number
 	local screen = view.gui.AbsoluteSize
 	local side = sideFor(screen)
 	if screen.Y > screen.X then
-		return screen, side + verticalChrome() + 2 * PadConfig.MARGIN
+		return side + verticalChrome() + 2 * PadConfig.MARGIN
 	end
-	return screen, side + 2 * PadConfig.BEZEL + 2 * PadConfig.MARGIN
+	return side + 2 * PadConfig.BEZEL + 2 * PadConfig.MARGIN
 end
 
 -- Returns where the root sits when open, and where it hides when closed.
