@@ -92,6 +92,11 @@ local Config = {
 
 	Pad = {
 		MARGIN = 16, -- pixels from the viewport edge
+		BEZEL = 18, -- pixels of tablet body around the screen
+		TABLET_CORNER_RADIUS = 22,
+		TABLET_STROKE_THICKNESS = 2,
+		SCREEN_CORNER_RADIUS = 6,
+		CAMERA_DOT_SIZE = 6,
 		GAP = 8, -- pixels between the pad, the controls, and each button
 		CONTROLS_HEIGHT = 44,
 		LANDSCAPE_MAX_WIDTH = 0.42, -- share of viewport width
@@ -102,9 +107,12 @@ local Config = {
 		CORNER_RADIUS = 8,
 		BUTTON_TEXT_SIZE = 16,
 
+		TABLET_COLOR = Color3.fromRGB(24, 26, 32),
+		TABLET_STROKE_COLOR = Color3.fromRGB(88, 94, 108),
+		CAMERA_DOT_COLOR = Color3.fromRGB(58, 64, 78),
 		SURFACE_COLOR = Color3.fromRGB(14, 18, 28),
 		SURFACE_STROKE_COLOR = Color3.fromRGB(90, 170, 255),
-		SURFACE_STROKE_THICKNESS = 2,
+		SURFACE_STROKE_THICKNESS = 1,
 		INK_COLOR = Color3.fromRGB(235, 245, 255),
 		BUTTON_COLOR = Color3.fromRGB(38, 46, 66),
 		SUBMIT_COLOR = Color3.fromRGB(40, 110, 200),

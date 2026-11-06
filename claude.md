@@ -212,7 +212,7 @@ Budgets (mid-range phone, interpreted Luau): Glass update ≤ 2 ms per frame; pr
 
 ## The Pad (`src/client/Pad/`)
 
-- ScreenGui with `ResetOnSpawn = false`. The square pad docks left in landscape and at the bottom in portrait; the camera frames the Glass in the rest of the viewport (recompute on resize and orientation change).
+- ScreenGui with `ResetOnSpawn = false`, styled as a tablet: a rounded body with a bezel, a square drawing screen, and the controls in its lower edge. It docks left in landscape and at the bottom in portrait; the camera frames the Glass in the rest of the viewport (recompute on resize and orientation change).
 - Input: start on the pad's `InputBegan` (MouseButton1 or Touch). Mouse: track `MouseMovement` while the button is held. Touch: track only the InputObject that started the stroke and ignore other fingers. Finish on `InputEnded`. Convert positions with the pad's AbsolutePosition/AbsoluteSize, and check the GUI inset once with a mouse and once in the Device Emulator.
 - Add a point only after the pointer moves ≥ 1% of the pad size; quantize to u16 immediately; enforce the Strokes limits (HUD: "Clear to keep drawing").
 - Ink: pooled Frames (rotated segments plus round joints with UICorner), at most 2,048.

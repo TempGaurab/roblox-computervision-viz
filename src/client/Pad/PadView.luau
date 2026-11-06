@@ -1,6 +1,6 @@
 --!strict
--- The pad's GUI: a square surface and a row of controls, docked left in landscape and at the bottom
--- in portrait, laid out again whenever the screen changes shape.
+-- The pad's GUI: a tablet with a square drawing screen and a row of controls in its body, docked left
+-- in landscape and at the bottom in portrait, laid out again whenever the screen changes shape.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -43,11 +43,18 @@ local function newButton(parent: Instance, name: string, text: string, color: Co
 	return button
 end
 
+-- Everything in the tablet's height that isn't the drawing screen.
+local function verticalChrome(): number
+	return 2 * PadConfig.BEZEL + PadConfig.GAP + PadConfig.CONTROLS_HEIGHT
+end
+
+-- The side of the square drawing screen.
 local function sideFor(screen: Vector2): number
-	local chrome = PadConfig.GAP + PadConfig.CONTROLS_HEIGHT
 	local margin = PadConfig.MARGIN
+	local chrome = verticalChrome()
 	if screen.Y > screen.X then
-		return math.min(screen.X - 2 * margin, screen.Y * PadConfig.PORTRAIT_MAX_HEIGHT - chrome)
+		local widthLimit = screen.X - 2 * margin - 2 * PadConfig.BEZEL
+		return math.min(widthLimit, screen.Y * PadConfig.PORTRAIT_MAX_HEIGHT - chrome)
 	end
 	return math.min(screen.X * PadConfig.LANDSCAPE_MAX_WIDTH, screen.Y - 2 * margin - chrome)
 end
@@ -57,9 +64,9 @@ function PadView.dockedExtent(view: PadView): (Vector2, number)
 	local screen = view.gui.AbsoluteSize
 	local side = sideFor(screen)
 	if screen.Y > screen.X then
-		return screen, side + PadConfig.GAP + PadConfig.CONTROLS_HEIGHT + 2 * PadConfig.MARGIN
+		return screen, side + verticalChrome() + 2 * PadConfig.MARGIN
 	end
-	return screen, side + 2 * PadConfig.MARGIN
+	return screen, side + 2 * PadConfig.BEZEL + 2 * PadConfig.MARGIN
 end
 
 -- Returns where the root sits when open, and where it hides when closed.
@@ -67,24 +74,27 @@ local function layOut(view: PadView): (UDim2, UDim2)
 	local screen = view.gui.AbsoluteSize
 	local margin = PadConfig.MARGIN
 	local gap = PadConfig.GAP
+	local bezel = PadConfig.BEZEL
 	local controlsHeight = PadConfig.CONTROLS_HEIGHT
-	local chrome = gap + controlsHeight
 
-	local side = sideFor(screen)
+	local side = math.max(sideFor(screen), 0)
+	local tabletWidth = side + 2 * bezel
+	local tabletHeight = side + verticalChrome()
+
 	local open: UDim2
 	local closed: UDim2
 	if screen.Y > screen.X then
-		local x = (screen.X - side) / 2
-		open = UDim2.fromOffset(x, screen.Y - side - chrome - margin)
+		local x = (screen.X - tabletWidth) / 2
+		open = UDim2.fromOffset(x, screen.Y - tabletHeight - margin)
 		closed = UDim2.fromOffset(x, screen.Y + margin)
 	else
-		local y = (screen.Y - side - chrome) / 2
+		local y = (screen.Y - tabletHeight) / 2
 		open = UDim2.fromOffset(margin, y)
-		closed = UDim2.fromOffset(-side - margin, y)
+		closed = UDim2.fromOffset(-tabletWidth - margin, y)
 	end
-	side = math.max(side, 0)
 
-	view.root.Size = UDim2.fromOffset(side, side + chrome)
+	view.root.Size = UDim2.fromOffset(tabletWidth, tabletHeight)
+	view.surface.Position = UDim2.fromOffset(bezel, bezel)
 	view.surface.Size = UDim2.fromOffset(side, side)
 
 	local buttons = { view.clearButton, view.undoButton, view.submitButton, view.exitButton }
@@ -98,7 +108,7 @@ local function layOut(view: PadView): (UDim2, UDim2)
 	local slot = 0
 	for _, button in buttons do
 		if button.Visible then
-			button.Position = UDim2.fromOffset(slot * (buttonWidth + gap), side + gap)
+			button.Position = UDim2.fromOffset(bezel + slot * (buttonWidth + gap), bezel + side + gap)
 			button.Size = UDim2.fromOffset(buttonWidth, controlsHeight)
 			slot += 1
 		end
@@ -142,10 +152,34 @@ function PadView.new(): PadView
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local root = Instance.new("Frame")
-	root.Name = "Root"
-	root.BackgroundTransparency = 1
+	root.Name = "Tablet"
+	root.BackgroundColor3 = PadConfig.TABLET_COLOR
+	root.BorderSizePixel = 0
+	root.Active = true
 	root.Visible = false
 	root.Parent = gui
+
+	local tabletCorner = Instance.new("UICorner")
+	tabletCorner.CornerRadius = UDim.new(0, PadConfig.TABLET_CORNER_RADIUS)
+	tabletCorner.Parent = root
+
+	local tabletStroke = Instance.new("UIStroke")
+	tabletStroke.Color = PadConfig.TABLET_STROKE_COLOR
+	tabletStroke.Thickness = PadConfig.TABLET_STROKE_THICKNESS
+	tabletStroke.Parent = root
+
+	local cameraDot = Instance.new("Frame")
+	cameraDot.Name = "CameraDot"
+	cameraDot.AnchorPoint = Vector2.new(0.5, 0.5)
+	cameraDot.Position = UDim2.new(0.5, 0, 0, PadConfig.BEZEL / 2)
+	cameraDot.Size = UDim2.fromOffset(PadConfig.CAMERA_DOT_SIZE, PadConfig.CAMERA_DOT_SIZE)
+	cameraDot.BackgroundColor3 = PadConfig.CAMERA_DOT_COLOR
+	cameraDot.BorderSizePixel = 0
+	cameraDot.Parent = root
+
+	local cameraDotCorner = Instance.new("UICorner")
+	cameraDotCorner.CornerRadius = UDim.new(0.5, 0)
+	cameraDotCorner.Parent = cameraDot
 
 	local surface = Instance.new("Frame")
 	surface.Name = "Surface"
@@ -154,6 +188,10 @@ function PadView.new(): PadView
 	surface.Active = true
 	surface.ClipsDescendants = true
 	surface.Parent = root
+
+	local surfaceCorner = Instance.new("UICorner")
+	surfaceCorner.CornerRadius = UDim.new(0, PadConfig.SCREEN_CORNER_RADIUS)
+	surfaceCorner.Parent = surface
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = PadConfig.SURFACE_STROKE_COLOR
